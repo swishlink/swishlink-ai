@@ -27,7 +27,7 @@ const PREVIEW_RATINGS = [
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-[#0d1627] text-white">
+    <div className="min-h-screen bg-gray-950 text-white">
       {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute left-1/2 top-[-10%] h-[700px] w-[1000px] -translate-x-1/2 rounded-full bg-orange-500/10 blur-[120px]" />
@@ -36,7 +36,7 @@ export default function HomePage() {
       <div className="relative flex flex-col">
         {/* Nav */}
         <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-          <Image src="/Swishlink.aiknowyourgamelogover1.png" alt="SwishLink" width={160} height={45} className="object-contain"  />
+          <Image src="/swishlink-logo.png" alt="SwishLink" width={160} height={45} className="object-contain"  />
           <div className="flex items-center gap-6">
             <Link href="/login" className="text-sm text-gray-400 hover:text-white transition-colors">
               Log in
