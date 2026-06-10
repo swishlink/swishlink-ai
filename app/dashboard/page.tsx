@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, ChangeEvent, useRef } from "react";
+import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import PlayerProfileCard from "@/components/PlayerProfileCard";
@@ -100,10 +101,10 @@ export default function DashboardPage() {
     });
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-[#0d1627] text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <span className="text-lg font-bold tracking-tight">SwishLink</span>
+        <Image src="/Swishlink.aiknowyourgamelogover1.png" alt="SwishLink" width={160} height={45} className="object-contain"  />
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
           <button

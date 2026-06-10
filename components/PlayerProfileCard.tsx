@@ -71,7 +71,7 @@ export default function PlayerProfileCard({ videoId }: { videoId: string }) {
   ];
 
   return (
-    <div className="rounded-xl border border-gray-800 bg-gray-950 text-white p-6 mt-6">
+    <div className="rounded-xl border border-white/10 bg-[#0a1120] text-white p-6 mt-6">
       <span className="text-xs font-semibold uppercase tracking-widest text-orange-400">
         Player Profile
       </span>

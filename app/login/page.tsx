@@ -4,6 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,9 +30,9 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex flex-col">
+    <div className="min-h-screen bg-[#0d1627] text-white flex flex-col">
       <nav className="px-8 py-5 border-b border-white/5">
-        <Link href="/" className="text-lg font-bold tracking-tight">SwishLink</Link>
+        <Link href="/"><Image src="/Swishlink.aiknowyourgamelogover1.png" alt="SwishLink" width={160} height={45} className="object-contain"  /></Link>
       </nav>
 
       <div className="flex flex-1 items-center justify-center px-6 py-16">
