@@ -51,12 +51,12 @@ export default function HomePage() {
         </nav>
 
         {/* Hero */}
-        <section className="flex flex-col items-center justify-center text-center px-6 pt-24 pb-28">
-          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-8">
+        <section className="flex flex-col items-center justify-center text-center px-6 pt-12 pb-10">
+          <div className="inline-flex items-center gap-2 rounded-full border border-orange-500/25 bg-orange-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-orange-400 mb-5">
             AI-Powered Player Analysis
           </div>
 
-          <h1 className="text-5xl sm:text-7xl font-bold leading-[1.05] tracking-tight mb-6 max-w-3xl">
+          <h1 className="text-5xl sm:text-7xl font-bold leading-[1.05] tracking-tight mb-5 max-w-3xl">
             Upload your game.
             <br />
             <span className="bg-gradient-to-r from-orange-400 to-amber-300 bg-clip-text text-transparent">
@@ -64,7 +64,7 @@ export default function HomePage() {
             </span>
           </h1>
 
-          <p className="max-w-md text-gray-400 text-lg leading-relaxed mb-10">
+          <p className="max-w-md text-gray-400 text-lg leading-relaxed mb-7">
             Drop in a highlight reel and get your shooting rating, finishing grade,
             playmaking score, and NBA player comparison — in seconds.
           </p>
@@ -75,7 +75,7 @@ export default function HomePage() {
           >
             Get Started Free
           </Link>
-          <p className="mt-4 text-sm text-gray-600">
+          <p className="mt-3 text-sm text-gray-600">
             Already have an account?{" "}
             <Link href="/login" className="text-gray-400 hover:text-white underline underline-offset-2">
               Log in
@@ -84,7 +84,7 @@ export default function HomePage() {
         </section>
 
         {/* Player card preview */}
-        <section className="px-6 pb-24 flex justify-center">
+        <section className="px-6 pb-10 flex justify-center">
           <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-gray-900/80 backdrop-blur p-7 shadow-2xl shadow-black/50">
             <span className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Player Profile
@@ -114,9 +114,9 @@ export default function HomePage() {
         </section>
 
         {/* How it works */}
-        <section className="border-t border-white/5 px-6 py-24">
+        <section className="border-t border-white/5 px-6 py-12">
           <h2 className="text-center text-2xl font-bold mb-2">How it works</h2>
-          <p className="text-center text-gray-500 mb-14 text-sm">Three steps from raw footage to player DNA.</p>
+          <p className="text-center text-gray-500 mb-8 text-sm">Three steps from raw footage to player DNA.</p>
           <div className="grid sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {STEPS.map((step) => (
               <div
