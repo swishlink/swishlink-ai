@@ -3,6 +3,7 @@
 import { useEffect, useState, ChangeEvent } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import PlayerProfileCard from "@/components/PlayerProfileCard";
 
 type VideoRecord = {
   id: string;
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userId, setUserId] = useState("");
   const [videos, setVideos] = useState<VideoRecord[]>([]);
+  const [lastUploadedPath, setLastUploadedPath] = useState<string | null>(null);
 
   useEffect(() => {
     const getUser = async () => {
@@ -96,7 +98,7 @@ export default function DashboardPage() {
       return;
     }
 
-    alert("Video uploaded successfully");
+    setLastUploadedPath(filePath);
     setSelectedFile(null);
     fetchVideos(userId);
   };
@@ -144,6 +146,10 @@ export default function DashboardPage() {
               Upload Video
             </button>
           </div>
+        )}
+
+        {lastUploadedPath && (
+          <PlayerProfileCard videoId={lastUploadedPath} />
         )}
       </div>
 
