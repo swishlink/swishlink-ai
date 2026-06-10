@@ -20,9 +20,9 @@ const STEPS = [
 ];
 
 const PREVIEW_RATINGS = [
-  { label: "3PT", value: 88, color: "bg-orange-400" },
-  { label: "Finishing", value: 62, color: "bg-sky-400" },
-  { label: "Handles", value: 71, color: "bg-emerald-400" },
+  { label: "3PT", value: 78, color: "bg-orange-400" },
+  { label: "Finishing", value: 91, color: "bg-sky-400" },
+  { label: "Handles", value: 93, color: "bg-emerald-400" },
 ];
 
 export default function HomePage() {
@@ -89,10 +89,10 @@ export default function HomePage() {
             <span className="text-xs font-semibold uppercase tracking-widest text-orange-400">
               Player Profile
             </span>
-            <h3 className="text-2xl font-bold mt-1">Sharpshooter</h3>
+            <h3 className="text-2xl font-bold mt-1">Clutch Scorer</h3>
             <p className="text-sm text-gray-400 mt-1 mb-7">
               NBA Comparison:{" "}
-              <span className="font-semibold text-white">Klay Thompson</span>
+              <span className="font-semibold text-white">Jalen Brunson</span>
             </p>
             <div className="grid grid-cols-3 gap-5">
               {PREVIEW_RATINGS.map(({ label, value, color }) => (
