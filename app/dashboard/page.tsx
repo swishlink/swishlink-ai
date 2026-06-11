@@ -46,6 +46,10 @@ export default function DashboardPage() {
   const [lastUploadedVideoId, setLastUploadedVideoId] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showClaimModal, setShowClaimModal] = useState(false);
+  const [claimInput, setClaimInput] = useState("");
+  const [claimError, setClaimError] = useState("");
+  const [claiming, setClaiming] = useState(false);
 
   useEffect(() => {
     const init = async () => {
@@ -65,16 +69,17 @@ export default function DashboardPage() {
       if (profile?.username) {
         setUsername(profile.username);
         setProfilePublic(profile.profile_public ?? false);
-      } else if (!profileErr || profileErr.code === "PGRST116") {
-        // Row not found — create it
-        const generated = "player_" + user.id.slice(0, 8);
-        const { error: upsertErr } = await supabase.from("profiles").upsert({
-          id: user.id,
-          email: user.email,
-          username: generated,
-          profile_public: false,
-        });
-        if (!upsertErr) setUsername(generated);
+      } else {
+        // No username yet — ensure the profile row exists, then prompt
+        if (!profileErr || profileErr.code === "PGRST116") {
+          await supabase.from("profiles").upsert({
+            id: user.id,
+            email: user.email,
+            profile_public: false,
+          });
+        }
+        setProfilePublic(profile?.profile_public ?? false);
+        setShowClaimModal(true);
       }
     };
     init();
@@ -109,6 +114,43 @@ export default function DashboardPage() {
       setProfilePublic(next);
     }
     setTogglingPublic(false);
+  };
+
+  const handleClaim = async () => {
+    const val = claimInput.trim();
+    if (!/^[a-z0-9.]{3,20}$/.test(val)) {
+      setClaimError("3–20 characters · letters, numbers, and periods only.");
+      return;
+    }
+    setClaiming(true);
+    setClaimError("");
+
+    const { data: existing } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", val)
+      .maybeSingle();
+
+    if (existing) {
+      setClaimError("That handle is already taken — try another.");
+      setClaiming(false);
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ username: val })
+      .eq("id", userId);
+
+    if (error) {
+      setClaimError("Couldn't save: " + error.message);
+      setClaiming(false);
+      return;
+    }
+
+    setUsername(val);
+    setShowClaimModal(false);
+    setClaiming(false);
   };
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -186,26 +228,44 @@ export default function DashboardPage() {
         {/* Profile settings */}
         <section className="mb-8 rounded-xl border border-white/8 bg-white/3 px-5 py-4 flex items-center justify-between gap-4">
           <div>
-            <p className="text-sm font-medium text-gray-200">
-              @{username || "…"}
-            </p>
-            <p className="text-xs text-gray-600 mt-0.5">
-              {profilePublic
-                ? "Your profile is public — anyone can view your card."
-                : "Your profile is private — only you can see your card."}
-            </p>
+            {username ? (
+              <>
+                <p className="text-sm font-medium text-gray-200">@{username}</p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  {profilePublic
+                    ? "Your profile is public — anyone can view your card."
+                    : "Your profile is private — only you can see your card."}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-orange-400">No handle set</p>
+                <p className="text-xs text-gray-600 mt-0.5">
+                  Claim your handle to enable downloads and sharing.
+                </p>
+              </>
+            )}
           </div>
-          <button
-            onClick={handleTogglePublic}
-            disabled={togglingPublic || !userId}
-            className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${
-              profilePublic
-                ? "bg-white/10 hover:bg-white/20 text-gray-300"
-                : "bg-orange-500 hover:bg-orange-400 text-white"
-            }`}
-          >
-            {profilePublic ? "Make Private" : "Make Profile Public"}
-          </button>
+          {username ? (
+            <button
+              onClick={handleTogglePublic}
+              disabled={togglingPublic || !userId}
+              className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${
+                profilePublic
+                  ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                  : "bg-orange-500 hover:bg-orange-400 text-white"
+              }`}
+            >
+              {profilePublic ? "Make Private" : "Make Profile Public"}
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowClaimModal(true)}
+              className="shrink-0 rounded-lg bg-orange-500 hover:bg-orange-400 transition-colors px-4 py-2 text-xs font-semibold text-white"
+            >
+              Claim handle
+            </button>
+          )}
         </section>
 
         {/* Upload section */}
@@ -313,6 +373,62 @@ export default function DashboardPage() {
           )}
         </section>
       </div>
+
+      {/* Claim username modal */}
+      {showClaimModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-white/10 bg-gray-950 p-8 shadow-2xl">
+            <p className="text-xs font-semibold uppercase tracking-widest text-orange-400 mb-2">
+              One-time setup
+            </p>
+            <h2 className="text-2xl font-bold mb-2">Claim your @handle</h2>
+            <p className="text-sm text-gray-500 mb-6">
+              This appears on your player card and public profile. Pick something you&apos;ll want to share.
+            </p>
+
+            <div className="mb-5">
+              <div className="flex items-center rounded-lg border border-white/10 bg-white/5 focus-within:border-orange-500/50 transition-colors overflow-hidden">
+                <span className="px-3 text-gray-500 font-semibold select-none">@</span>
+                <input
+                  type="text"
+                  value={claimInput}
+                  onChange={(e) => {
+                    setClaimInput(e.target.value.toLowerCase().replace(/[^a-z0-9.]/g, ""));
+                    setClaimError("");
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleClaim()}
+                  placeholder="yourhandle"
+                  maxLength={20}
+                  autoFocus
+                  className="flex-1 bg-transparent py-3 pr-3 text-white placeholder-gray-600 outline-none text-sm"
+                />
+              </div>
+              <p className="mt-1.5 text-xs text-gray-600">
+                3–20 characters · letters, numbers, and periods only
+              </p>
+              {claimError && (
+                <p className="mt-2 text-xs text-red-400">{claimError}</p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleClaim}
+                disabled={claiming || claimInput.length < 3}
+                className="w-full rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-50 transition-colors py-2.5 text-sm font-semibold text-white"
+              >
+                {claiming ? "Checking…" : "Claim Handle"}
+              </button>
+              <button
+                onClick={() => setShowClaimModal(false)}
+                className="w-full rounded-lg py-2.5 text-sm text-gray-600 hover:text-gray-400 transition-colors"
+              >
+                Skip for now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

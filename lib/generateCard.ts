@@ -135,11 +135,13 @@ export async function generateShareCard(
     bar(ctx, cx - 96, 976, 192, 12, r.color, r.value);
   });
 
-  // Username
-  ctx.textAlign = "center";
-  ctx.fillStyle = "#4b5563";
-  ctx.font = "38px system-ui,sans-serif";
-  ctx.fillText(`@${username}`, W / 2, 1080);
+  // Username (only if a real handle is set)
+  if (username) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#4b5563";
+    ctx.font = "38px system-ui,sans-serif";
+    ctx.fillText(`@${username}`, W / 2, 1080);
+  }
 
   // Divider above reason
   ctx.strokeStyle = "rgba(255,255,255,0.05)";
