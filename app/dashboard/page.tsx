@@ -54,7 +54,7 @@ export default function DashboardPage() {
       setUserId(user.id);
 
       // Fetch or create username + public flag
-      const { data: profile } = await supabase
+      const { data: profile, error: profileErr } = await supabase
         .from("profiles")
         .select("username, profile_public")
         .eq("id", user.id)
@@ -63,15 +63,16 @@ export default function DashboardPage() {
       if (profile?.username) {
         setUsername(profile.username);
         setProfilePublic(profile.profile_public ?? false);
-      } else {
+      } else if (!profileErr || profileErr.code === "PGRST116") {
+        // Row not found — create it
         const generated = "player_" + user.id.slice(0, 8);
-        await supabase.from("profiles").upsert({
+        const { error: upsertErr } = await supabase.from("profiles").upsert({
           id: user.id,
           email: user.email,
           username: generated,
           profile_public: false,
         });
-        setUsername(generated);
+        if (!upsertErr) setUsername(generated);
       }
     };
     init();
@@ -96,8 +97,15 @@ export default function DashboardPage() {
   const handleTogglePublic = async () => {
     setTogglingPublic(true);
     const next = !profilePublic;
-    await supabase.from("profiles").update({ profile_public: next }).eq("id", userId);
-    setProfilePublic(next);
+    const { error } = await supabase
+      .from("profiles")
+      .update({ profile_public: next })
+      .eq("id", userId);
+    if (error) {
+      alert("Could not update profile visibility: " + error.message);
+    } else {
+      setProfilePublic(next);
+    }
     setTogglingPublic(false);
   };
 
@@ -115,7 +123,11 @@ export default function DashboardPage() {
 
     const { error: uploadError } = await supabase.storage
       .from("videos").upload(filePath, selectedFile);
-    if (uploadError) { alert(uploadError.message); setUploading(false); return; }
+    if (uploadError) {
+      alert("Upload failed: " + uploadError.message + "\n\nCheck that your Supabase storage bucket has an upload policy for authenticated users.");
+      setUploading(false);
+      return;
+    }
 
     const profile = getProfile(filePath);
 
@@ -132,7 +144,11 @@ export default function DashboardPage() {
       }])
       .select("id")
       .single();
-    if (dbError) { alert(dbError.message); setUploading(false); return; }
+    if (dbError) {
+      alert("Database error: " + dbError.message + "\n\nCheck that the videos table has all required columns (archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison).");
+      setUploading(false);
+      return;
+    }
 
     setLastUploadedProfile(profile);
     setLastUploadedVideoId(inserted?.id);
