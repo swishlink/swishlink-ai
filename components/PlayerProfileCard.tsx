@@ -74,10 +74,16 @@ export default function PlayerProfileCard({
         </div>
 
         <h3 className="text-2xl font-bold mt-2">{profile.archetype}</h3>
-        <p className="text-sm text-gray-400 mt-1 mb-6">
+        <p className="text-sm text-gray-400 mt-1">
           NBA Comparison:{" "}
           <span className="font-semibold text-white">{profile.nbaComparison}</span>
         </p>
+        {profile.comparisonReason && (
+          <p className="text-xs text-gray-500 leading-relaxed mt-2 mb-6">
+            {profile.comparisonReason}
+          </p>
+        )}
+        {!profile.comparisonReason && <div className="mb-6" />}
 
         <div className="grid grid-cols-3 gap-6">
           {ratings.map(({ label, value }) => (

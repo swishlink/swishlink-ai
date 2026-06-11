@@ -49,7 +49,7 @@ export default async function PublicProfilePage({ params }: Props) {
   // Fetch most recent video with profile data
   const { data: video } = await supabase
     .from("videos")
-    .select("id, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison")
+    .select("id, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason")
     .eq("user_id", profile.id)
     .not("archetype", "is", null)
     .order("created_at", { ascending: false })
@@ -79,6 +79,7 @@ export default async function PublicProfilePage({ params }: Props) {
       handles: video.rating_handles,
     },
     nbaComparison: video.nba_comparison,
+    comparisonReason: video.comparison_reason ?? "",
   };
 
   return (

@@ -16,6 +16,7 @@ type VideoRecord = {
   rating_finishing: number | null;
   rating_handles: number | null;
   nba_comparison: string | null;
+  comparison_reason: string | null;
 };
 
 function profileFromRecord(video: VideoRecord): PlayerProfile | null {
@@ -28,6 +29,7 @@ function profileFromRecord(video: VideoRecord): PlayerProfile | null {
       handles: video.rating_handles!,
     },
     nbaComparison: video.nba_comparison!,
+    comparisonReason: video.comparison_reason ?? "",
   };
 }
 
@@ -81,7 +83,7 @@ export default function DashboardPage() {
   const fetchVideos = async (uid: string) => {
     const { data, error } = await supabase
       .from("videos")
-      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison")
+      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (!error) setVideos(data || []);
@@ -141,6 +143,7 @@ export default function DashboardPage() {
         rating_finishing: profile.ratings.finishing,
         rating_handles: profile.ratings.handles,
         nba_comparison: profile.nbaComparison,
+        comparison_reason: profile.comparisonReason,
       }])
       .select("id")
       .single();

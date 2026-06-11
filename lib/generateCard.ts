@@ -13,6 +13,31 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
+function wrapText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number
+): number {
+  const words = text.split(" ");
+  let line = "";
+  const lines: string[] = [];
+  for (const word of words) {
+    const test = line + word + " ";
+    if (ctx.measureText(test).width > maxWidth && line !== "") {
+      lines.push(line.trim());
+      line = word + " ";
+    } else {
+      line = test;
+    }
+  }
+  if (line.trim()) lines.push(line.trim());
+  lines.forEach((l, i) => ctx.fillText(l, x, y + i * lineHeight));
+  return lines.length;
+}
+
 function bar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -116,9 +141,26 @@ export async function generateShareCard(
   ctx.font = "38px system-ui,sans-serif";
   ctx.fillText(`@${username}`, W / 2, 1080);
 
+  // Divider above reason
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(108, 1130);
+  ctx.lineTo(W - 108, 1130);
+  ctx.stroke();
+
+  // Comparison reason
+  if (profile.comparisonReason) {
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "italic 34px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, 1210, W - 280, 56);
+  }
+
   // Bottom branding
   ctx.fillStyle = "#374151";
   ctx.font = "38px system-ui,sans-serif";
+  ctx.textAlign = "center";
   ctx.fillText("Know your game.", W / 2, H - 160);
   ctx.fillStyle = "#6b7280";
   ctx.font = "bold 46px system-ui,sans-serif";
