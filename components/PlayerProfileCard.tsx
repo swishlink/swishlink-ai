@@ -1,4 +1,4 @@
-type PlayerProfile = {
+export type PlayerProfile = {
   archetype: string;
   ratings: { threePoint: number; finishing: number; handles: number };
   nbaComparison: string;
@@ -40,7 +40,7 @@ function hashVideoId(videoId: string): number {
   return Math.abs(hash);
 }
 
-function getProfile(videoId: string): PlayerProfile {
+export function getProfile(videoId: string): PlayerProfile {
   const hash = hashVideoId(videoId);
   const base = ARCHETYPES[hash % ARCHETYPES.length];
   const v1 = ((hash >> 4) % 11) - 5;
@@ -62,8 +62,7 @@ const RATING_COLORS: Record<string, string> = {
   Handles: "bg-emerald-400",
 };
 
-export default function PlayerProfileCard({ videoId }: { videoId: string }) {
-  const profile = getProfile(videoId);
+export default function PlayerProfileCard({ profile }: { profile: PlayerProfile }) {
   const ratings = [
     { label: "3PT", value: profile.ratings.threePoint },
     { label: "Finishing", value: profile.ratings.finishing },

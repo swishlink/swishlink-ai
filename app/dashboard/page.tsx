@@ -1,16 +1,34 @@
 "use client";
 
 import { useEffect, useState, ChangeEvent, useRef } from "react";
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
-import PlayerProfileCard from "@/components/PlayerProfileCard";
+import Image from "next/image";
+import PlayerProfileCard, { getProfile, PlayerProfile } from "@/components/PlayerProfileCard";
 
 type VideoRecord = {
   id: string;
   file_path: string;
   created_at: string;
+  archetype: string | null;
+  rating_3pt: number | null;
+  rating_finishing: number | null;
+  rating_handles: number | null;
+  nba_comparison: string | null;
 };
+
+function profileFromRecord(video: VideoRecord): PlayerProfile | null {
+  if (!video.archetype || video.rating_3pt == null) return null;
+  return {
+    archetype: video.archetype,
+    ratings: {
+      threePoint: video.rating_3pt,
+      finishing: video.rating_finishing!,
+      handles: video.rating_handles!,
+    },
+    nbaComparison: video.nba_comparison!,
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,7 +36,7 @@ export default function DashboardPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userId, setUserId] = useState("");
   const [videos, setVideos] = useState<VideoRecord[]>([]);
-  const [lastUploadedPath, setLastUploadedPath] = useState<string | null>(null);
+  const [lastUploadedProfile, setLastUploadedProfile] = useState<PlayerProfile | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +56,7 @@ export default function DashboardPage() {
   const fetchVideos = async (currentUserId: string) => {
     const { data, error } = await supabase
       .from("videos")
-      .select("*")
+      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison")
       .eq("user_id", currentUserId)
       .order("created_at", { ascending: false });
     if (!error) setVideos(data || []);
@@ -74,9 +92,17 @@ export default function DashboardPage() {
       return;
     }
 
-    const { error: dbError } = await supabase.from("videos").insert([
-      { user_id: userId, file_path: filePath },
-    ]);
+    const profile = getProfile(filePath);
+
+    const { error: dbError } = await supabase.from("videos").insert([{
+      user_id: userId,
+      file_path: filePath,
+      archetype: profile.archetype,
+      rating_3pt: profile.ratings.threePoint,
+      rating_finishing: profile.ratings.finishing,
+      rating_handles: profile.ratings.handles,
+      nba_comparison: profile.nbaComparison,
+    }]);
 
     if (dbError) {
       alert(dbError.message);
@@ -84,7 +110,7 @@ export default function DashboardPage() {
       return;
     }
 
-    setLastUploadedPath(filePath);
+    setLastUploadedProfile(profile);
     setSelectedFile(null);
     setUploading(false);
     fetchVideos(userId);
@@ -104,7 +130,7 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-gray-950 text-white">
       {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
-        <Image src="/swishlink-logo.png" alt="SwishLink" width={160} height={45} className="object-contain"  />
+        <Image src="/swishlink-logo.png" alt="SwishLink" width={160} height={45} className="object-contain" />
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-500 hidden sm:block">{userEmail}</span>
           <button
@@ -179,8 +205,8 @@ export default function DashboardPage() {
             className="hidden"
           />
 
-          {lastUploadedPath && (
-            <PlayerProfileCard videoId={lastUploadedPath} />
+          {lastUploadedProfile && (
+            <PlayerProfileCard profile={lastUploadedProfile} />
           )}
         </section>
 
@@ -196,31 +222,39 @@ export default function DashboardPage() {
             </div>
           ) : (
             <ul className="space-y-4">
-              {videos.map((video) => (
-                <li key={video.id} className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
-                  <video
-                    controls
-                    className="w-full max-h-72 bg-black"
-                    src={getVideoUrl(video.file_path)}
-                  />
-                  <div className="px-5 py-4 flex items-center justify-between gap-4">
-                    <div className="min-w-0">
-                      <p className="font-medium text-sm truncate text-gray-200">
-                        {video.file_path.split("-").slice(2).join("-") || video.file_path}
-                      </p>
-                      <p className="text-xs text-gray-600 mt-0.5">{formatDate(video.created_at)}</p>
+              {videos.map((video) => {
+                const savedProfile = profileFromRecord(video);
+                return (
+                  <li key={video.id} className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
+                    <video
+                      controls
+                      className="w-full max-h-72 bg-black"
+                      src={getVideoUrl(video.file_path)}
+                    />
+                    <div className="px-5 py-4 flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate text-gray-200">
+                          {video.file_path.split("-").slice(2).join("-") || video.file_path}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-0.5">{formatDate(video.created_at)}</p>
+                      </div>
+                      <a
+                        href={getVideoUrl(video.file_path)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="shrink-0 rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/30 hover:text-white transition-colors"
+                      >
+                        Open
+                      </a>
                     </div>
-                    <a
-                      href={getVideoUrl(video.file_path)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/30 hover:text-white transition-colors"
-                    >
-                      Open
-                    </a>
-                  </div>
-                </li>
-              ))}
+                    {savedProfile && (
+                      <div className="px-5 pb-5">
+                        <PlayerProfileCard profile={savedProfile} />
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
         </section>
