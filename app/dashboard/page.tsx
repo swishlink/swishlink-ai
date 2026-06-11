@@ -4,7 +4,8 @@ import { useEffect, useState, ChangeEvent, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import PlayerProfileCard, { getProfile, PlayerProfile } from "@/components/PlayerProfileCard";
+import PlayerProfileCard, { getProfile } from "@/components/PlayerProfileCard";
+import type { PlayerProfile } from "@/lib/playerProfile";
 
 type VideoRecord = {
   id: string;
@@ -33,84 +34,108 @@ function profileFromRecord(video: VideoRecord): PlayerProfile | null {
 export default function DashboardPage() {
   const router = useRouter();
   const [userEmail, setUserEmail] = useState("");
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [userId, setUserId] = useState("");
+  const [username, setUsername] = useState("");
+  const [profilePublic, setProfilePublic] = useState(false);
+  const [togglingPublic, setTogglingPublic] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [lastUploadedProfile, setLastUploadedProfile] = useState<PlayerProfile | null>(null);
+  const [lastUploadedVideoId, setLastUploadedVideoId] = useState<string | undefined>();
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const getUser = async () => {
+    const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        router.push("/login");
+      if (!user) { router.push("/login"); return; }
+
+      setUserEmail(user.email || "");
+      setUserId(user.id);
+
+      // Fetch or create username + public flag
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username, profile_public")
+        .eq("id", user.id)
+        .single();
+
+      if (profile?.username) {
+        setUsername(profile.username);
+        setProfilePublic(profile.profile_public ?? false);
       } else {
-        setUserEmail(user.email || "");
-        setUserId(user.id);
+        const generated = "player_" + user.id.slice(0, 8);
+        await supabase.from("profiles").upsert({
+          id: user.id,
+          email: user.email,
+          username: generated,
+          profile_public: false,
+        });
+        setUsername(generated);
       }
     };
-    getUser();
+    init();
   }, [router]);
 
-  const fetchVideos = async (currentUserId: string) => {
+  const fetchVideos = async (uid: string) => {
     const { data, error } = await supabase
       .from("videos")
       .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison")
-      .eq("user_id", currentUserId)
+      .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (!error) setVideos(data || []);
   };
 
-  useEffect(() => {
-    if (userId) fetchVideos(userId);
-  }, [userId]);
+  useEffect(() => { if (userId) fetchVideos(userId); }, [userId]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push("/login");
   };
 
-  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files?.[0]) setSelectedFile(event.target.files[0]);
+  const handleTogglePublic = async () => {
+    setTogglingPublic(true);
+    const next = !profilePublic;
+    await supabase.from("profiles").update({ profile_public: next }).eq("id", userId);
+    setProfilePublic(next);
+    setTogglingPublic(false);
+  };
+
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files?.[0]) setSelectedFile(e.target.files[0]);
   };
 
   const handleUpload = async () => {
     if (!selectedFile || !userId) return;
     setUploading(true);
+    setLastUploadedProfile(null);
 
     const fileExt = selectedFile.name.split(".").pop();
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
 
     const { error: uploadError } = await supabase.storage
-      .from("videos")
-      .upload(filePath, selectedFile);
-
-    if (uploadError) {
-      alert(uploadError.message);
-      setUploading(false);
-      return;
-    }
+      .from("videos").upload(filePath, selectedFile);
+    if (uploadError) { alert(uploadError.message); setUploading(false); return; }
 
     const profile = getProfile(filePath);
 
-    const { error: dbError } = await supabase.from("videos").insert([{
-      user_id: userId,
-      file_path: filePath,
-      archetype: profile.archetype,
-      rating_3pt: profile.ratings.threePoint,
-      rating_finishing: profile.ratings.finishing,
-      rating_handles: profile.ratings.handles,
-      nba_comparison: profile.nbaComparison,
-    }]);
-
-    if (dbError) {
-      alert(dbError.message);
-      setUploading(false);
-      return;
-    }
+    const { data: inserted, error: dbError } = await supabase
+      .from("videos")
+      .insert([{
+        user_id: userId,
+        file_path: filePath,
+        archetype: profile.archetype,
+        rating_3pt: profile.ratings.threePoint,
+        rating_finishing: profile.ratings.finishing,
+        rating_handles: profile.ratings.handles,
+        nba_comparison: profile.nbaComparison,
+      }])
+      .select("id")
+      .single();
+    if (dbError) { alert(dbError.message); setUploading(false); return; }
 
     setLastUploadedProfile(profile);
+    setLastUploadedVideoId(inserted?.id);
     setSelectedFile(null);
     setUploading(false);
     fetchVideos(userId);
@@ -120,15 +145,10 @@ export default function DashboardPage() {
     `https://iqdergebussgqfofcolv.supabase.co/storage/v1/object/public/videos/${filePath}`;
 
   const formatDate = (iso: string) =>
-    new Date(iso).toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
-      {/* Nav */}
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
         <Image src="/swishlink-logo.png" alt="SwishLink" width={160} height={45} className="object-contain" />
         <div className="flex items-center gap-4">
@@ -143,6 +163,32 @@ export default function DashboardPage() {
       </nav>
 
       <div className="max-w-3xl mx-auto px-6 py-10">
+
+        {/* Profile settings */}
+        <section className="mb-8 rounded-xl border border-white/8 bg-white/3 px-5 py-4 flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium text-gray-200">
+              @{username || "…"}
+            </p>
+            <p className="text-xs text-gray-600 mt-0.5">
+              {profilePublic
+                ? "Your profile is public — anyone can view your card."
+                : "Your profile is private — only you can see your card."}
+            </p>
+          </div>
+          <button
+            onClick={handleTogglePublic}
+            disabled={togglingPublic || !userId}
+            className={`shrink-0 rounded-lg px-4 py-2 text-xs font-semibold transition-colors disabled:opacity-50 ${
+              profilePublic
+                ? "bg-white/10 hover:bg-white/20 text-gray-300"
+                : "bg-orange-500 hover:bg-orange-400 text-white"
+            }`}
+          >
+            {profilePublic ? "Make Private" : "Make Profile Public"}
+          </button>
+        </section>
+
         {/* Upload section */}
         <section className="mb-10">
           <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-4">
@@ -174,39 +220,31 @@ export default function DashboardPage() {
                 </div>
                 <div className="min-w-0">
                   <p className="font-medium truncate">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {(selectedFile.size / 1024 / 1024).toFixed(1)} MB
-                  </p>
+                  <p className="text-xs text-gray-500 mt-0.5">{(selectedFile.size / 1024 / 1024).toFixed(1)} MB</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => setSelectedFile(null)}
-                  className="rounded-md px-3 py-1.5 text-sm text-gray-500 hover:text-gray-300 transition-colors"
-                >
+                <button onClick={() => setSelectedFile(null)} className="rounded-md px-3 py-1.5 text-sm text-gray-500 hover:text-gray-300 transition-colors">
                   Remove
                 </button>
-                <button
-                  onClick={handleUpload}
-                  disabled={uploading}
-                  className="rounded-md bg-orange-500 hover:bg-orange-400 disabled:opacity-50 px-4 py-1.5 text-sm font-semibold text-white transition-colors"
-                >
+                <button onClick={handleUpload} disabled={uploading} className="rounded-md bg-orange-500 hover:bg-orange-400 disabled:opacity-50 px-4 py-1.5 text-sm font-semibold text-white transition-colors">
                   {uploading ? "Uploading…" : "Analyze"}
                 </button>
               </div>
             </div>
           )}
 
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="video/*"
-            onChange={handleFileChange}
-            className="hidden"
-          />
+          <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileChange} className="hidden" />
 
           {lastUploadedProfile && (
-            <PlayerProfileCard profile={lastUploadedProfile} />
+            <PlayerProfileCard
+              profile={lastUploadedProfile}
+              username={username}
+              userId={userId}
+              videoId={lastUploadedVideoId}
+              showSharePrompt={true}
+              trackView={true}
+            />
           )}
         </section>
 
@@ -226,11 +264,7 @@ export default function DashboardPage() {
                 const savedProfile = profileFromRecord(video);
                 return (
                   <li key={video.id} className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
-                    <video
-                      controls
-                      className="w-full max-h-72 bg-black"
-                      src={getVideoUrl(video.file_path)}
-                    />
+                    <video controls className="w-full max-h-72 bg-black" src={getVideoUrl(video.file_path)} />
                     <div className="px-5 py-4 flex items-center justify-between gap-4">
                       <div className="min-w-0">
                         <p className="font-medium text-sm truncate text-gray-200">
@@ -238,18 +272,19 @@ export default function DashboardPage() {
                         </p>
                         <p className="text-xs text-gray-600 mt-0.5">{formatDate(video.created_at)}</p>
                       </div>
-                      <a
-                        href={getVideoUrl(video.file_path)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/30 hover:text-white transition-colors"
-                      >
+                      <a href={getVideoUrl(video.file_path)} target="_blank" rel="noopener noreferrer"
+                        className="shrink-0 rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/30 hover:text-white transition-colors">
                         Open
                       </a>
                     </div>
                     {savedProfile && (
                       <div className="px-5 pb-5">
-                        <PlayerProfileCard profile={savedProfile} />
+                        <PlayerProfileCard
+                          profile={savedProfile}
+                          username={username}
+                          userId={userId}
+                          videoId={video.id}
+                        />
                       </div>
                     )}
                   </li>
