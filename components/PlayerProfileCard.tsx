@@ -9,7 +9,11 @@ export type { PlayerProfile } from "@/lib/playerProfile";
 export { getProfile } from "@/lib/playerProfile";
 
 import type { PlayerProfile } from "@/lib/playerProfile";
-import { confidenceLabel } from "@/lib/playerProfile";
+import {
+  confidenceLabel,
+  shouldPromptForSharperRatings,
+  SHARPER_RATINGS_CTA,
+} from "@/lib/playerProfile";
 
 const RATING_COLORS: Record<string, string> = {
   "3PT": "bg-orange-400",
@@ -60,6 +64,7 @@ export default function PlayerProfileCard({
 
   const readLabel = confidenceLabel(profile.confidence);
   const readColor = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
+  const showSharperRatingsCta = shouldPromptForSharperRatings(profile);
 
   return (
     <div>
@@ -113,14 +118,6 @@ export default function PlayerProfileCard({
           <p className="mt-1 text-xl font-bold text-white">
             {profile.nbaComparison}
           </p>
-          <p className={`mt-2 text-[10px] font-semibold uppercase tracking-widest ${readColor}`}>
-            {readLabel}
-          </p>
-          {profile.comparisonReason && (
-            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
-              {profile.comparisonReason}
-            </p>
-          )}
         </div>
 
         {/* Skills — below the identity, in support of it */}
@@ -140,6 +137,24 @@ export default function PlayerProfileCard({
             </div>
           ))}
         </div>
+
+        {showSharperRatingsCta && (
+          <p className="mt-5 text-center text-xs text-orange-400/90 leading-relaxed">
+            {SHARPER_RATINGS_CTA}
+          </p>
+        )}
+
+        {/* Observation — confidence read, then the quote it's based on */}
+        {profile.comparisonReason && (
+          <div className="mt-6 text-center">
+            <p className={`text-[10px] font-semibold uppercase tracking-widest ${readColor}`}>
+              {readLabel}
+            </p>
+            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+              {profile.comparisonReason}
+            </p>
+          </div>
+        )}
       </div>
 
       {showSharePrompt && username && userId && (

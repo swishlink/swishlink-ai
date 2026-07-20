@@ -1,5 +1,9 @@
 import type { PlayerProfile } from "@/lib/playerProfile";
-import { confidenceLabel } from "@/lib/playerProfile";
+import {
+  confidenceLabel,
+  shouldPromptForSharperRatings,
+  SHARPER_RATINGS_CTA,
+} from "@/lib/playerProfile";
 
 const CONFIDENCE_LABEL_COLORS: Record<string, string> = {
   high: "#34d399",
@@ -116,7 +120,7 @@ export async function generateShareCard(
   ctx.font = "26px system-ui,sans-serif";
   ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 500 + off);
 
-  // Closest NBA Match
+  // Closest NBA Match — name only; confidence now lives with the observation
   ctx.fillStyle = "#6b7280";
   ctx.font = "38px system-ui,sans-serif";
   ctx.fillText("Closest NBA Match", W / 2, 566 + off);
@@ -124,18 +128,12 @@ export async function generateShareCard(
   ctx.font = "bold 62px system-ui,sans-serif";
   ctx.fillText(profile.nbaComparison, W / 2, 634 + off);
 
-  // Confidence — small, secondary label near the observation text
-  const readLabel = confidenceLabel(profile.confidence).toUpperCase();
-  ctx.fillStyle = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
-  ctx.font = "bold 26px system-ui,sans-serif";
-  ctx.fillText(readLabel, W / 2, 674 + off);
-
-  // Divider
+  // Divider before ratings
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 706 + off);
-  ctx.lineTo(W - 108, 706 + off);
+  ctx.moveTo(108, 690 + off);
+  ctx.lineTo(W - 108, 690 + off);
   ctx.stroke();
 
   // Ratings
@@ -145,6 +143,7 @@ export async function generateShareCard(
     { label: "HANDLES", value: profile.ratings.handles, color: "#34d399" },
   ];
 
+  const ratingsNumberY = 845 + off;
   const colW = (W - 216) / 3;
   ratings.forEach((r, i) => {
     const cx = 108 + i * colW + colW / 2;
@@ -152,29 +151,48 @@ export async function generateShareCard(
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 140px system-ui,sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(String(r.value), cx, 861 + off);
+    ctx.fillText(String(r.value), cx, ratingsNumberY);
 
     ctx.fillStyle = "#6b7280";
     ctx.font = "bold 30px system-ui,sans-serif";
-    ctx.fillText(r.label, cx, 917 + off);
+    ctx.fillText(r.label, cx, ratingsNumberY + 56);
 
-    bar(ctx, cx - 96, 937 + off, 192, 12, r.color, r.value);
+    bar(ctx, cx - 96, ratingsNumberY + 76, 192, 12, r.color, r.value);
   });
 
-  // Divider above reason
+  // Sharper-ratings CTA — fills the empty space between ratings and the
+  // observation below, only when the footage likely under-informed the AI.
+  let extraForCta = 0;
+  if (shouldPromptForSharperRatings(profile)) {
+    ctx.fillStyle = "#fb923c";
+    ctx.font = "600 28px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    const ctaY = ratingsNumberY + 155;
+    const ctaLines = wrapText(ctx, SHARPER_RATINGS_CTA, W / 2, ctaY, W - 280, 40);
+    extraForCta = ctaLines * 40 + 40;
+  }
+
+  // Divider before the observation
+  const divider2Y = ratingsNumberY + 230 + extraForCta;
   ctx.strokeStyle = "rgba(255,255,255,0.05)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 1091 + off);
-  ctx.lineTo(W - 108, 1091 + off);
+  ctx.moveTo(108, divider2Y);
+  ctx.lineTo(W - 108, divider2Y);
   ctx.stroke();
 
-  // Comparison reason
+  // Observation — confidence read, then the quote it's based on
   if (profile.comparisonReason) {
+    const readLabel = confidenceLabel(profile.confidence).toUpperCase();
+    ctx.fillStyle = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
+    ctx.font = "bold 26px system-ui,sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(readLabel, W / 2, divider2Y + 40);
+
     ctx.fillStyle = "#9ca3af";
     ctx.font = "italic 34px system-ui,sans-serif";
     ctx.textAlign = "center";
-    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, 1171 + off, W - 280, 56);
+    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, divider2Y + 80, W - 280, 56);
   }
 
   // Bottom branding
