@@ -56,7 +56,10 @@ export default function ShareBar({ profile, username, userId, videoId }: Props) 
   return (
     <div
       style={{
-        maxHeight: visible ? "120px" : "0px",
+        // Generous cap so the two-row mobile grid (grid-cols-2) isn't
+        // clipped by overflow:hidden — the old 120px only fit the
+        // single-row desktop layout (sm:grid-cols-4).
+        maxHeight: visible ? "260px" : "0px",
         opacity: visible ? 1 : 0,
         marginTop: visible ? "12px" : "0px",
         transition: "max-height 0.5s ease, opacity 0.5s ease, margin-top 0.5s ease",
