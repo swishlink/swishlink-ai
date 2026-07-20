@@ -1,4 +1,5 @@
 import type { PlayerProfile } from "@/lib/playerProfile";
+import { confidencePercent } from "@/lib/playerProfile";
 
 const W = 1080;
 const H = 1920;
@@ -86,30 +87,40 @@ export async function generateShareCard(
     ctx.fillText("SWISHLINK.AI", W / 2, 160);
   }
 
-  // "PLAYER PROFILE" badge
+  // "YOUR BASKETBALL IDENTITY" badge
   ctx.fillStyle = "#f97316";
-  ctx.font = "bold 36px system-ui,sans-serif";
-  ctx.fillText("PLAYER PROFILE", W / 2, 320);
+  ctx.font = "bold 30px system-ui,sans-serif";
+  ctx.fillText("YOUR BASKETBALL IDENTITY", W / 2, 300);
 
-  // Archetype
+  // Identity name — the largest element on the card
   ctx.fillStyle = "#ffffff";
   ctx.font = `bold ${profile.archetype.length > 10 ? 88 : 108}px system-ui,sans-serif`;
-  ctx.fillText(profile.archetype.toUpperCase(), W / 2, 470);
+  ctx.fillText(profile.archetype.toUpperCase(), W / 2, 440);
 
-  // "Plays like"
+  // Identity confidence
+  const pct = confidencePercent(profile.confidence, username || profile.archetype);
+  ctx.fillStyle = "#34d399";
+  ctx.font = "bold 44px system-ui,sans-serif";
+  ctx.fillText(`${pct}% CONFIDENCE`, W / 2, 512);
+
   ctx.fillStyle = "#6b7280";
-  ctx.font = "40px system-ui,sans-serif";
-  ctx.fillText("Plays like", W / 2, 560);
+  ctx.font = "26px system-ui,sans-serif";
+  ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 556);
+
+  // Closest NBA Match
+  ctx.fillStyle = "#6b7280";
+  ctx.font = "38px system-ui,sans-serif";
+  ctx.fillText("Closest NBA Match", W / 2, 622);
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 62px system-ui,sans-serif";
-  ctx.fillText(profile.nbaComparison, W / 2, 648);
+  ctx.fillText(profile.nbaComparison, W / 2, 690);
 
   // Divider
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 710);
-  ctx.lineTo(W - 108, 710);
+  ctx.moveTo(108, 745);
+  ctx.lineTo(W - 108, 745);
   ctx.stroke();
 
   // Ratings

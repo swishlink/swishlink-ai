@@ -4,8 +4,9 @@ import { useEffect, useState, ChangeEvent, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import PlayerProfileCard, { getProfile } from "@/components/PlayerProfileCard";
-import type { PlayerProfile } from "@/lib/playerProfile";
+import PlayerProfileCard from "@/components/PlayerProfileCard";
+import type { PlayerProfile, Confidence } from "@/lib/playerProfile";
+import { analyzeVideo } from "@/lib/analyzeVideo";
 
 type VideoRecord = {
   id: string;
@@ -17,6 +18,8 @@ type VideoRecord = {
   rating_handles: number | null;
   nba_comparison: string | null;
   comparison_reason: string | null;
+  confidence: string | null;
+  confidence_note: string | null;
 };
 
 function profileFromRecord(video: VideoRecord): PlayerProfile | null {
@@ -30,6 +33,8 @@ function profileFromRecord(video: VideoRecord): PlayerProfile | null {
     },
     nbaComparison: video.nba_comparison!,
     comparisonReason: video.comparison_reason ?? "",
+    confidence: (video.confidence as Confidence | null) ?? undefined,
+    confidenceNote: video.confidence_note ?? undefined,
   };
 }
 
@@ -41,6 +46,8 @@ export default function DashboardPage() {
   const [profilePublic, setProfilePublic] = useState(false);
   const [togglingPublic, setTogglingPublic] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [jerseyColor, setJerseyColor] = useState("");
+  const [jerseyNumber, setJerseyNumber] = useState("");
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [lastUploadedProfile, setLastUploadedProfile] = useState<PlayerProfile | null>(null);
   const [lastUploadedVideoId, setLastUploadedVideoId] = useState<string | undefined>();
@@ -88,7 +95,7 @@ export default function DashboardPage() {
   const fetchVideos = async (uid: string) => {
     const { data, error } = await supabase
       .from("videos")
-      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason")
+      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason, confidence, confidence_note")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (!error) setVideos(data || []);
@@ -173,24 +180,34 @@ export default function DashboardPage() {
       return;
     }
 
-    const profile = getProfile(filePath);
+    // Run the real scout AI on frames extracted from the clip.
+    const profile = await analyzeVideo(
+      selectedFile,
+      jerseyColor,
+      jerseyNumber,
+      filePath
+    );
 
     const { data: inserted, error: dbError } = await supabase
       .from("videos")
       .insert([{
         user_id: userId,
         file_path: filePath,
+        jersey_color: jerseyColor || null,
+        jersey_number: jerseyNumber || null,
         archetype: profile.archetype,
         rating_3pt: profile.ratings.threePoint,
         rating_finishing: profile.ratings.finishing,
         rating_handles: profile.ratings.handles,
         nba_comparison: profile.nbaComparison,
         comparison_reason: profile.comparisonReason,
+        confidence: profile.confidence ?? null,
+        confidence_note: profile.confidenceNote ?? null,
       }])
       .select("id")
       .single();
     if (dbError) {
-      alert("Database error: " + dbError.message + "\n\nCheck that the videos table has all required columns (archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison).");
+      alert("Database error: " + dbError.message + "\n\nCheck that the videos table has all required columns (jersey_color, jersey_number, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason, confidence, confidence_note).");
       setUploading(false);
       return;
     }
@@ -198,6 +215,8 @@ export default function DashboardPage() {
     setLastUploadedProfile(profile);
     setLastUploadedVideoId(inserted?.id);
     setSelectedFile(null);
+    setJerseyColor("");
+    setJerseyNumber("");
     setUploading(false);
     fetchVideos(userId);
   };
@@ -290,25 +309,66 @@ export default function DashboardPage() {
               </div>
             </button>
           ) : (
-            <div className="rounded-xl border border-white/10 bg-white/3 p-6 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="rounded-lg bg-orange-500/10 p-2.5 shrink-0">
-                  <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
-                  </svg>
+            <div className="rounded-xl border border-white/10 bg-white/3 p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="rounded-lg bg-orange-500/10 p-2.5 shrink-0">
+                    <svg className="w-5 h-5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z" />
+                    </svg>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-medium truncate">{selectedFile.name}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">{(selectedFile.size / 1024 / 1024).toFixed(1)} MB</p>
+                  </div>
                 </div>
-                <div className="min-w-0">
-                  <p className="font-medium truncate">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">{(selectedFile.size / 1024 / 1024).toFixed(1)} MB</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button onClick={() => setSelectedFile(null)} className="rounded-md px-3 py-1.5 text-sm text-gray-500 hover:text-gray-300 transition-colors">
+                <button onClick={() => { setSelectedFile(null); setJerseyColor(""); setJerseyNumber(""); }} disabled={uploading} className="shrink-0 rounded-md px-3 py-1.5 text-sm text-gray-500 hover:text-gray-300 transition-colors disabled:opacity-50">
                   Remove
                 </button>
-                <button onClick={handleUpload} disabled={uploading} className="rounded-md bg-orange-500 hover:bg-orange-400 disabled:opacity-50 px-4 py-1.5 text-sm font-semibold text-white transition-colors">
-                  {uploading ? "Uploading…" : "Analyze"}
+              </div>
+
+              {/* Jersey identification — helps the scout AI find YOU in the footage */}
+              <div className="mt-5 border-t border-white/8 pt-5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+                  Help us spot you
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">Jersey color</label>
+                    <input
+                      type="text"
+                      value={jerseyColor}
+                      onChange={(e) => setJerseyColor(e.target.value)}
+                      placeholder="e.g. white"
+                      disabled={uploading}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 focus:border-orange-500/50 outline-none transition-colors px-3 py-2 text-sm text-white placeholder-gray-600 disabled:opacity-50"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1.5">Jersey number</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={jerseyNumber}
+                      onChange={(e) => setJerseyNumber(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+                      placeholder="e.g. 23"
+                      disabled={uploading}
+                      className="w-full rounded-lg border border-white/10 bg-white/5 focus:border-orange-500/50 outline-none transition-colors px-3 py-2 text-sm text-white placeholder-gray-600 disabled:opacity-50"
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={handleUpload}
+                  disabled={uploading || !jerseyColor.trim() || !jerseyNumber.trim()}
+                  className="mt-4 w-full rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-50 px-4 py-2.5 text-sm font-semibold text-white transition-colors"
+                >
+                  {uploading ? "Analyzing your game…" : "Analyze my game"}
                 </button>
+                {uploading && (
+                  <p className="mt-2 text-center text-xs text-gray-600">
+                    Extracting frames and scouting your footage — this can take up to a minute.
+                  </p>
+                )}
               </div>
             </div>
           )}

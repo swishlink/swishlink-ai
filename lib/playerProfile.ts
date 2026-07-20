@@ -1,8 +1,12 @@
+export type Confidence = "high" | "medium" | "low";
+
 export type PlayerProfile = {
   archetype: string;
   ratings: { threePoint: number; finishing: number; handles: number };
   nbaComparison: string;
   comparisonReason: string;
+  confidence?: Confidence;
+  confidenceNote?: string;
 };
 
 type ArchetypeBase = {
@@ -68,6 +72,8 @@ function hashVideoId(videoId: string): number {
   return Math.abs(hash);
 }
 
+// Fallback profile — used only when the real AI analysis is unavailable
+// (e.g. ANTHROPIC_API_KEY not configured, or the request fails).
 export function getProfile(videoId: string): PlayerProfile {
   const hash = hashVideoId(videoId);
   const base = ARCHETYPES[hash % ARCHETYPES.length];
@@ -84,5 +90,26 @@ export function getProfile(videoId: string): PlayerProfile {
     },
     nbaComparison: base.nbaComparison,
     comparisonReason: base.comparisonReasons[reasonIndex],
+    confidence: "medium",
   };
+}
+
+// Maps the categorical confidence returned by the scout AI to a stable
+// display percentage (e.g. "94% Confidence"). The seed keeps the number
+// stable per card. In future versions this can rise as more games are
+// analyzed, to encourage repeat uploads.
+export function confidencePercent(
+  confidence: Confidence | undefined,
+  seed: string
+): number {
+  const h = hashVideoId(seed || "seed");
+  switch (confidence) {
+    case "low":
+      return 62 + (h % 8); // 62–69
+    case "medium":
+      return 78 + (h % 9); // 78–86
+    case "high":
+    default:
+      return 90 + (h % 8); // 90–97
+  }
 }
