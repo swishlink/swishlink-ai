@@ -9,12 +9,18 @@ export type { PlayerProfile } from "@/lib/playerProfile";
 export { getProfile } from "@/lib/playerProfile";
 
 import type { PlayerProfile } from "@/lib/playerProfile";
-import { confidencePercent } from "@/lib/playerProfile";
+import { confidenceLabel } from "@/lib/playerProfile";
 
 const RATING_COLORS: Record<string, string> = {
   "3PT": "bg-orange-400",
   Finishing: "bg-sky-400",
   Handles: "bg-emerald-400",
+};
+
+const CONFIDENCE_LABEL_COLORS: Record<string, string> = {
+  high: "text-emerald-400",
+  medium: "text-sky-400",
+  low: "text-amber-400",
 };
 
 type Props = {
@@ -52,17 +58,17 @@ export default function PlayerProfileCard({
     { label: "Handles", value: profile.ratings.handles },
   ];
 
-  const confidencePct = confidencePercent(
-    profile.confidence,
-    videoId ?? username ?? profile.archetype
-  );
+  const readLabel = confidenceLabel(profile.confidence);
+  const readColor = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
 
   return (
     <div>
       <div className="rounded-xl border border-white/10 bg-[#0a1120] text-white p-6 mt-6">
-        <div className="flex items-start justify-between gap-4">
+        <div className="flex items-start justify-between gap-4 mb-4">
           {username ? (
-            <p className="text-xs text-gray-600">@{username}</p>
+            <p className="text-2xl sm:text-3xl font-extrabold text-orange-400 tracking-tight">
+              @{username}
+            </p>
           ) : (
             <span />
           )}
@@ -84,14 +90,6 @@ export default function PlayerProfileCard({
           <h2 className="mt-3 text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
             {profile.archetype}
           </h2>
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            <span className="text-sm font-semibold text-emerald-400">
-              {confidencePct}%
-            </span>
-            <span className="text-xs uppercase tracking-wide text-gray-500">
-              Confidence
-            </span>
-          </div>
           <p className="mt-2 text-xs text-gray-600">
             Based on AI analysis of your uploaded game footage.
           </p>
@@ -114,6 +112,9 @@ export default function PlayerProfileCard({
           </p>
           <p className="mt-1 text-xl font-bold text-white">
             {profile.nbaComparison}
+          </p>
+          <p className={`mt-2 text-[10px] font-semibold uppercase tracking-widest ${readColor}`}>
+            {readLabel}
           </p>
           {profile.comparisonReason && (
             <p className="mt-2 text-xs text-gray-500 leading-relaxed">

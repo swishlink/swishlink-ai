@@ -94,22 +94,15 @@ export function getProfile(videoId: string): PlayerProfile {
   };
 }
 
-// Maps the categorical confidence returned by the scout AI to a stable
-// display percentage (e.g. "94% Confidence"). The seed keeps the number
-// stable per card. In future versions this can rise as more games are
-// analyzed, to encourage repeat uploads.
-export function confidencePercent(
-  confidence: Confidence | undefined,
-  seed: string
-): number {
-  const h = hashVideoId(seed || "seed");
-  switch (confidence) {
-    case "low":
-      return 62 + (h % 8); // 62–69
-    case "medium":
-      return 78 + (h % 9); // 78–86
-    case "high":
-    default:
-      return 90 + (h % 8); // 90–97
-  }
+// Maps the categorical confidence returned by the scout AI to a short,
+// human-readable read on the footage — shown as a secondary label near the
+// observation text rather than a raw score.
+const CONFIDENCE_LABELS: Record<Confidence, string> = {
+  high: "Strong Read",
+  medium: "Good Read",
+  low: "Limited Read",
+};
+
+export function confidenceLabel(confidence: Confidence | undefined): string {
+  return CONFIDENCE_LABELS[confidence ?? "medium"];
 }

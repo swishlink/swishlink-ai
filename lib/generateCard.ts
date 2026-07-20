@@ -1,5 +1,11 @@
 import type { PlayerProfile } from "@/lib/playerProfile";
-import { confidencePercent } from "@/lib/playerProfile";
+import { confidenceLabel } from "@/lib/playerProfile";
+
+const CONFIDENCE_LABEL_COLORS: Record<string, string> = {
+  high: "#34d399",
+  medium: "#38bdf8",
+  low: "#fbbf24",
+};
 
 const W = 1080;
 const H = 1920;
@@ -87,40 +93,49 @@ export async function generateShareCard(
     ctx.fillText("SWISHLINK.AI", W / 2, 160);
   }
 
+  // Username — prominent, brand orange, reads as the player's identity
+  const hasUsername = Boolean(username);
+  if (hasUsername) {
+    ctx.fillStyle = "#f97316";
+    ctx.font = "bold 68px system-ui,sans-serif";
+    ctx.fillText(`@${username}`, W / 2, 250);
+  }
+  const off = hasUsername ? 100 : 0;
+
   // "YOUR BASKETBALL IDENTITY" badge
   ctx.fillStyle = "#f97316";
   ctx.font = "bold 30px system-ui,sans-serif";
-  ctx.fillText("YOUR BASKETBALL IDENTITY", W / 2, 300);
+  ctx.fillText("YOUR BASKETBALL IDENTITY", W / 2, 300 + off);
 
   // Identity name — the largest element on the card
   ctx.fillStyle = "#ffffff";
   ctx.font = `bold ${profile.archetype.length > 10 ? 88 : 108}px system-ui,sans-serif`;
-  ctx.fillText(profile.archetype.toUpperCase(), W / 2, 440);
-
-  // Identity confidence
-  const pct = confidencePercent(profile.confidence, username || profile.archetype);
-  ctx.fillStyle = "#34d399";
-  ctx.font = "bold 44px system-ui,sans-serif";
-  ctx.fillText(`${pct}% CONFIDENCE`, W / 2, 512);
+  ctx.fillText(profile.archetype.toUpperCase(), W / 2, 440 + off);
 
   ctx.fillStyle = "#6b7280";
   ctx.font = "26px system-ui,sans-serif";
-  ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 556);
+  ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 500 + off);
 
   // Closest NBA Match
   ctx.fillStyle = "#6b7280";
   ctx.font = "38px system-ui,sans-serif";
-  ctx.fillText("Closest NBA Match", W / 2, 622);
+  ctx.fillText("Closest NBA Match", W / 2, 566 + off);
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 62px system-ui,sans-serif";
-  ctx.fillText(profile.nbaComparison, W / 2, 690);
+  ctx.fillText(profile.nbaComparison, W / 2, 634 + off);
+
+  // Confidence — small, secondary label near the observation text
+  const readLabel = confidenceLabel(profile.confidence).toUpperCase();
+  ctx.fillStyle = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
+  ctx.font = "bold 26px system-ui,sans-serif";
+  ctx.fillText(readLabel, W / 2, 674 + off);
 
   // Divider
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 745);
-  ctx.lineTo(W - 108, 745);
+  ctx.moveTo(108, 706 + off);
+  ctx.lineTo(W - 108, 706 + off);
   ctx.stroke();
 
   // Ratings
@@ -137,29 +152,21 @@ export async function generateShareCard(
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 140px system-ui,sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText(String(r.value), cx, 900);
+    ctx.fillText(String(r.value), cx, 861 + off);
 
     ctx.fillStyle = "#6b7280";
     ctx.font = "bold 30px system-ui,sans-serif";
-    ctx.fillText(r.label, cx, 956);
+    ctx.fillText(r.label, cx, 917 + off);
 
-    bar(ctx, cx - 96, 976, 192, 12, r.color, r.value);
+    bar(ctx, cx - 96, 937 + off, 192, 12, r.color, r.value);
   });
-
-  // Username (only if a real handle is set)
-  if (username) {
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#4b5563";
-    ctx.font = "38px system-ui,sans-serif";
-    ctx.fillText(`@${username}`, W / 2, 1080);
-  }
 
   // Divider above reason
   ctx.strokeStyle = "rgba(255,255,255,0.05)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 1130);
-  ctx.lineTo(W - 108, 1130);
+  ctx.moveTo(108, 1091 + off);
+  ctx.lineTo(W - 108, 1091 + off);
   ctx.stroke();
 
   // Comparison reason
@@ -167,7 +174,7 @@ export async function generateShareCard(
     ctx.fillStyle = "#9ca3af";
     ctx.font = "italic 34px system-ui,sans-serif";
     ctx.textAlign = "center";
-    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, 1210, W - 280, 56);
+    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, 1171 + off, W - 280, 56);
   }
 
   // Bottom branding
