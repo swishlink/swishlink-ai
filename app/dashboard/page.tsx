@@ -240,6 +240,10 @@ export default function DashboardPage() {
   const formatDate = (iso: string) =>
     new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
+  // The just-uploaded clip is already shown above as the fresh reveal card —
+  // exclude it here so it doesn't render a second time in the library list.
+  const libraryVideos = videos.filter((video) => video.id !== lastUploadedVideoId);
+
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <nav className="flex items-center justify-between px-8 py-5 border-b border-white/5">
@@ -406,13 +410,13 @@ export default function DashboardPage() {
             Your clips
           </h2>
 
-          {videos.length === 0 ? (
+          {libraryVideos.length === 0 && videos.length === 0 ? (
             <div className="rounded-xl border border-white/5 bg-white/2 py-16 text-center">
               <p className="text-gray-500 text-sm">No clips uploaded yet.</p>
             </div>
           ) : (
             <ul className="space-y-4">
-              {videos.map((video) => {
+              {libraryVideos.map((video) => {
                 const savedProfile = profileFromRecord(video);
                 return (
                   <li key={video.id} className="rounded-xl border border-white/8 bg-white/3 overflow-hidden">
