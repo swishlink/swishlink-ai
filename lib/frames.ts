@@ -8,6 +8,28 @@ export type ExtractedFrame = { data: string; mediaType: "image/jpeg" };
 const FRAME_COUNT = 12; // 10–15 range, spread evenly across the clip
 const MAX_EDGE = 1024; // downscale long edge to keep the payload reasonable
 const JPEG_QUALITY = 0.72;
+const METADATA_TIMEOUT_MS = 15_000;
+const SEEK_TIMEOUT_MS = 8_000;
+
+// Some mobile browsers/codecs never fire "loadedmetadata" or "seeked" for a
+// given file (rotation metadata, partial buffering over cellular, etc.),
+// which would otherwise hang these awaits forever. Bound every wait so a
+// bad file fails fast instead of stalling the whole upload flow.
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
 
 export async function extractFrames(
   file: File,
@@ -21,7 +43,11 @@ export async function extractFrames(
   video.src = url;
 
   try {
-    await once(video, "loadedmetadata");
+    await withTimeout(
+      once(video, "loadedmetadata"),
+      METADATA_TIMEOUT_MS,
+      "Timed out loading video metadata."
+    );
 
     const duration = video.duration;
     if (!isFinite(duration) || duration <= 0) {
@@ -45,7 +71,7 @@ export async function extractFrames(
 
     const frames: ExtractedFrame[] = [];
     for (const t of timestamps) {
-      await seek(video, t);
+      await withTimeout(seek(video, t), SEEK_TIMEOUT_MS, "Timed out seeking video frame.");
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL("image/jpeg", JPEG_QUALITY);
       frames.push({ data: dataUrl.split(",")[1], mediaType: "image/jpeg" });

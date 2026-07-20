@@ -135,28 +135,34 @@ export async function POST(req: Request) {
   }));
 
   try {
-    const response = await client.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      thinking: { type: "adaptive" },
-      output_config: {
-        effort: "medium",
-        format: { type: "json_schema", schema: OUTPUT_SCHEMA },
-      },
-      system: buildSystemPrompt(jerseyColor, jerseyNumber),
-      messages: [
-        {
-          role: "user",
-          content: [
-            ...imageBlocks,
-            {
-              type: "text",
-              text: `These are ${frames.length} frames extracted evenly across the uploaded game clip. Analyze the player as instructed and respond with the JSON profile.`,
-            },
-          ],
+    const response = await client.messages.create(
+      {
+        model: MODEL,
+        max_tokens: 2048,
+        thinking: { type: "adaptive" },
+        output_config: {
+          effort: "medium",
+          format: { type: "json_schema", schema: OUTPUT_SCHEMA },
         },
-      ],
-    });
+        system: buildSystemPrompt(jerseyColor, jerseyNumber),
+        messages: [
+          {
+            role: "user",
+            content: [
+              ...imageBlocks,
+              {
+                type: "text",
+                text: `These are ${frames.length} frames extracted evenly across the uploaded game clip. Analyze the player as instructed and respond with the JSON profile.`,
+              },
+            ],
+          },
+        ],
+      },
+      // Fail well before the function's own max duration so a stuck
+      // request returns a clear error instead of the client waiting
+      // out the full serverless timeout.
+      { timeout: 90_000 }
+    );
 
     if (response.stop_reason === "refusal") {
       return Response.json(
