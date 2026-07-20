@@ -15,8 +15,11 @@ type VideoRecord = {
   created_at: string;
   archetype: string | null;
   rating_3pt: number | null;
+  rating_3pt_observed: boolean | null;
   rating_finishing: number | null;
+  rating_finishing_observed: boolean | null;
   rating_handles: number | null;
+  rating_handles_observed: boolean | null;
   nba_comparison: string | null;
   comparison_reason: string | null;
   confidence: string | null;
@@ -31,6 +34,13 @@ function profileFromRecord(video: VideoRecord): PlayerProfile | null {
       threePoint: video.rating_3pt,
       finishing: video.rating_finishing!,
       handles: video.rating_handles!,
+    },
+    // Rows created before this field existed have null observed flags —
+    // treat as observed so older cards don't suddenly show as estimated.
+    observed: {
+      threePoint: video.rating_3pt_observed ?? true,
+      finishing: video.rating_finishing_observed ?? true,
+      handles: video.rating_handles_observed ?? true,
     },
     nbaComparison: video.nba_comparison!,
     comparisonReason: video.comparison_reason ?? "",
@@ -96,7 +106,7 @@ export default function DashboardPage() {
   const fetchVideos = async (uid: string) => {
     const { data, error } = await supabase
       .from("videos")
-      .select("id, file_path, created_at, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason, confidence, confidence_note")
+      .select("id, file_path, created_at, archetype, rating_3pt, rating_3pt_observed, rating_finishing, rating_finishing_observed, rating_handles, rating_handles_observed, nba_comparison, comparison_reason, confidence, confidence_note")
       .eq("user_id", uid)
       .order("created_at", { ascending: false });
     if (!error) setVideos(data || []);
@@ -210,8 +220,11 @@ export default function DashboardPage() {
         jersey_number: jerseyNumber || null,
         archetype: profile.archetype,
         rating_3pt: profile.ratings.threePoint,
+        rating_3pt_observed: profile.observed?.threePoint ?? true,
         rating_finishing: profile.ratings.finishing,
+        rating_finishing_observed: profile.observed?.finishing ?? true,
         rating_handles: profile.ratings.handles,
+        rating_handles_observed: profile.observed?.handles ?? true,
         nba_comparison: profile.nbaComparison,
         comparison_reason: profile.comparisonReason,
         confidence: profile.confidence ?? null,
@@ -220,7 +233,7 @@ export default function DashboardPage() {
       .select("id")
       .single();
     if (dbError) {
-      alert("Database error: " + dbError.message + "\n\nCheck that the videos table has all required columns (jersey_color, jersey_number, archetype, rating_3pt, rating_finishing, rating_handles, nba_comparison, comparison_reason, confidence, confidence_note).");
+      alert("Database error: " + dbError.message + "\n\nCheck that the videos table has all required columns (jersey_color, jersey_number, archetype, rating_3pt, rating_3pt_observed, rating_finishing, rating_finishing_observed, rating_handles, rating_handles_observed, nba_comparison, comparison_reason, confidence, confidence_note).");
       setUploading(false);
       return;
     }

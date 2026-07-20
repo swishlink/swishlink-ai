@@ -6,8 +6,11 @@ type ApiResult = {
   nba_comparison: string;
   comparison_reason: string;
   rating_3pt: number;
+  rating_3pt_observed: boolean;
   rating_finishing: number;
+  rating_finishing_observed: boolean;
   rating_handles: number;
+  rating_handles_observed: boolean;
   confidence: "high" | "medium" | "low";
   confidence_note: string;
 };
@@ -55,6 +58,11 @@ export async function analyzeVideo(
         threePoint: data.rating_3pt,
         finishing: data.rating_finishing,
         handles: data.rating_handles,
+      },
+      observed: {
+        threePoint: data.rating_3pt_observed,
+        finishing: data.rating_finishing_observed,
+        handles: data.rating_handles_observed,
       },
       nbaComparison: data.nba_comparison,
       comparisonReason: data.comparison_reason,

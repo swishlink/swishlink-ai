@@ -69,9 +69,9 @@ export default function PlayerProfileCard({
   };
 
   const ratings = [
-    { label: "3PT", value: profile.ratings.threePoint },
-    { label: "Finishing", value: profile.ratings.finishing },
-    { label: "Handles", value: profile.ratings.handles },
+    { label: "3PT", value: profile.ratings.threePoint, observed: profile.observed?.threePoint ?? true },
+    { label: "Finishing", value: profile.ratings.finishing, observed: profile.observed?.finishing ?? true },
+    { label: "Handles", value: profile.ratings.handles, observed: profile.observed?.handles ?? true },
   ];
 
   const readLabel = confidenceLabel(profile.confidence);
@@ -138,15 +138,22 @@ export default function PlayerProfileCard({
 
         {/* Skills — below the identity, in support of it */}
         <div className="mt-6 grid grid-cols-3 gap-6">
-          {ratings.map(({ label, value }) => (
+          {ratings.map(({ label, value, observed }) => (
             <div key={label}>
-              <div className="text-4xl font-bold text-white">{value}</div>
+              <div className={`flex items-baseline gap-1 ${observed ? "" : "opacity-50"}`}>
+                <span className="text-4xl font-bold text-white">{value}</span>
+                {!observed && (
+                  <span className="text-[10px] font-semibold uppercase text-gray-500">
+                    Est.
+                  </span>
+                )}
+              </div>
               <div className="text-xs text-gray-500 uppercase tracking-wide mt-1">
                 {label}
               </div>
               <div className="mt-2 h-1.5 rounded-full bg-gray-800">
                 <div
-                  className={`h-1.5 rounded-full ${RATING_COLORS[label]}`}
+                  className={`h-1.5 rounded-full ${RATING_COLORS[label]} ${observed ? "" : "opacity-50"}`}
                   style={{ width: `${value}%` }}
                 />
               </div>

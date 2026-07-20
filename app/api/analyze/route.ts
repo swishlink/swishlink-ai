@@ -30,8 +30,9 @@ GROUNDING RULES — CRITICAL:
    court locations, ball-handling stance, defensive stance,
    spacing awareness, athleticism indicators, physical build.
 4. If the footage doesn't show enough of a skill to rate it,
-   give a mid-range rating (65-75) and note lower confidence —
-   never fabricate specifics.
+   give a mid-range rating (65-75), set that skill's "_observed"
+   field to false, and note lower confidence — never fabricate
+   specifics.
 5. Every sentence in comparison_reason must reference
    something actually visible in the frames.
 
@@ -45,6 +46,13 @@ RATINGS GUIDANCE:
 - Scale: 60-69 developing, 70-79 solid, 80-89 strong,
   90+ exceptional. Be encouraging but honest — players
   compare cards and detect inflation.
+- For EACH of the three skills, set its "_observed" boolean:
+  true only if the frames actually show that skill in action
+  (e.g. a real shot attempt for 3PT, a real drive/finish for
+  FINISHING, real ball-handling for HANDLES). Set it false if
+  you had to estimate from general athleticism/build instead
+  of direct evidence — the rating stays a genuine estimate
+  either way, this flag just tells us whether to trust it.
 
 NBA COMPARISON:
 Choose a comparison based on playstyle and body type visible
@@ -62,8 +70,12 @@ OUTPUT — respond ONLY with this JSON, no other text:
   "comparison_reason": "string — 1-2 sentences citing specific
     visible observations from THIS footage",
   "rating_3pt": integer,
+  "rating_3pt_observed": boolean — true if 3PT was actually
+    visible in the footage, false if estimated,
   "rating_finishing": integer,
+  "rating_finishing_observed": boolean — same rule for FINISHING,
   "rating_handles": integer,
+  "rating_handles_observed": boolean — same rule for HANDLES,
   "confidence": "high | medium | low — based on footage
     quality and how clearly the target player was visible",
   "confidence_note": "string — only if confidence is not high,
@@ -79,8 +91,11 @@ const OUTPUT_SCHEMA = {
     nba_comparison: { type: "string" },
     comparison_reason: { type: "string" },
     rating_3pt: { type: "integer" },
+    rating_3pt_observed: { type: "boolean" },
     rating_finishing: { type: "integer" },
+    rating_finishing_observed: { type: "boolean" },
     rating_handles: { type: "integer" },
+    rating_handles_observed: { type: "boolean" },
     confidence: { type: "string", enum: ["high", "medium", "low"] },
     confidence_note: { type: "string" },
   },
@@ -89,8 +104,11 @@ const OUTPUT_SCHEMA = {
     "nba_comparison",
     "comparison_reason",
     "rating_3pt",
+    "rating_3pt_observed",
     "rating_finishing",
+    "rating_finishing_observed",
     "rating_handles",
+    "rating_handles_observed",
     "confidence",
     "confidence_note",
   ],

@@ -1,8 +1,19 @@
 export type Confidence = "high" | "medium" | "low";
 
+// Per-category: true if the AI actually saw evidence of that skill in the
+// footage, false if it had to estimate. Optional/undefined (e.g. rows
+// created before this field existed) is treated as observed everywhere it's
+// read, so older cards don't suddenly show as estimated.
+export type ObservedFlags = {
+  threePoint: boolean;
+  finishing: boolean;
+  handles: boolean;
+};
+
 export type PlayerProfile = {
   archetype: string;
   ratings: { threePoint: number; finishing: number; handles: number };
+  observed?: ObservedFlags;
   nbaComparison: string;
   comparisonReason: string;
   confidence?: Confidence;
@@ -91,6 +102,7 @@ export function getProfile(videoId: string): PlayerProfile {
     nbaComparison: base.nbaComparison,
     comparisonReason: base.comparisonReasons[reasonIndex],
     confidence: "medium",
+    observed: { threePoint: true, finishing: true, handles: true },
   };
 }
 
@@ -111,9 +123,9 @@ export const SHARPER_RATINGS_CTA =
   "Want sharper ratings? Upload a clip with more shooting, driving, or ball-handling moments.";
 
 // The scout prompt defaults an under-observed skill to a flat 65-75 rating
-// rather than guessing. If every rating landed in that band, or confidence
-// is low, the footage likely didn't show enough — prompt for a better clip.
-// Never shown on high-confidence cards.
+// rather than guessing. If any category came back unobserved, every rating
+// landed in that flat band, or confidence is low, the footage likely didn't
+// show enough — prompt for a better clip. Never shown on high-confidence cards.
 const DEFAULT_BAND_MIN = 65;
 const DEFAULT_BAND_MAX = 75;
 
@@ -122,5 +134,8 @@ export function shouldPromptForSharperRatings(profile: PlayerProfile): boolean {
   const { threePoint, finishing, handles } = profile.ratings;
   const inDefaultBand = (v: number) => v >= DEFAULT_BAND_MIN && v <= DEFAULT_BAND_MAX;
   const allFlat = inDefaultBand(threePoint) && inDefaultBand(finishing) && inDefaultBand(handles);
-  return profile.confidence === "low" || allFlat;
+  const anyUnobserved = profile.observed
+    ? !profile.observed.threePoint || !profile.observed.finishing || !profile.observed.handles
+    : false;
+  return profile.confidence === "low" || allFlat || anyUnobserved;
 }

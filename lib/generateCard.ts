@@ -100,12 +100,15 @@ function bar(
   w: number,
   h: number,
   fill: string,
-  pct: number
+  pct: number,
+  dim: boolean = false
 ) {
   ctx.fillStyle = "#1f2937";
   ctx.fillRect(x, y, w, h);
+  ctx.globalAlpha = dim ? 0.5 : 1;
   ctx.fillStyle = fill;
   ctx.fillRect(x, y, (w * pct) / 100, h);
+  ctx.globalAlpha = 1;
 }
 
 export async function generateShareCard(
@@ -202,9 +205,24 @@ export async function generateShareCard(
 
   // Ratings
   const ratings = [
-    { label: "3PT", value: profile.ratings.threePoint, color: "#fb923c" },
-    { label: "FINISHING", value: profile.ratings.finishing, color: "#38bdf8" },
-    { label: "HANDLES", value: profile.ratings.handles, color: "#34d399" },
+    {
+      label: "3PT",
+      value: profile.ratings.threePoint,
+      color: "#fb923c",
+      observed: profile.observed?.threePoint ?? true,
+    },
+    {
+      label: "FINISHING",
+      value: profile.ratings.finishing,
+      color: "#38bdf8",
+      observed: profile.observed?.finishing ?? true,
+    },
+    {
+      label: "HANDLES",
+      value: profile.ratings.handles,
+      color: "#34d399",
+      observed: profile.observed?.handles ?? true,
+    },
   ];
 
   const ratingsNumberY = 845 + offBelow;
@@ -212,16 +230,22 @@ export async function generateShareCard(
   ratings.forEach((r, i) => {
     const cx = 108 + i * colW + colW / 2;
 
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = r.observed ? "#ffffff" : "rgba(255,255,255,0.45)";
     ctx.font = "bold 140px system-ui,sans-serif";
     ctx.textAlign = "center";
     ctx.fillText(String(r.value), cx, ratingsNumberY);
+
+    if (!r.observed) {
+      ctx.fillStyle = "#9ca3af";
+      ctx.font = "bold 22px system-ui,sans-serif";
+      ctx.fillText("EST.", cx, ratingsNumberY + 26);
+    }
 
     ctx.fillStyle = "#6b7280";
     ctx.font = "bold 30px system-ui,sans-serif";
     ctx.fillText(r.label, cx, ratingsNumberY + 56);
 
-    bar(ctx, cx - 96, ratingsNumberY + 76, 192, 12, r.color, r.value);
+    bar(ctx, cx - 96, ratingsNumberY + 76, 192, 12, r.color, r.value, !r.observed);
   });
 
   // Sharper-ratings CTA — fills the empty space between ratings and the
