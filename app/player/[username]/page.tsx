@@ -106,7 +106,7 @@ export default async function PublicProfilePage({ params }: Props) {
           username={profile.username}
         />
 
-        <p className="text-center text-xs text-gray-700 mt-8">
+        <p className="text-center text-xs text-gray-600 mt-8">
           Know your game at{" "}
           <Link href="/" className="text-gray-500 hover:text-white underline underline-offset-2">
             swishlink-ai.vercel.app

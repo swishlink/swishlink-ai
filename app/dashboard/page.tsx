@@ -250,7 +250,7 @@ export default function DashboardPage() {
             {username ? (
               <>
                 <p className="text-sm font-medium text-gray-200">@{username}</p>
-                <p className="text-xs text-gray-600 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   {profilePublic
                     ? "Your profile is public — anyone can view your card."
                     : "Your profile is private — only you can see your card."}
@@ -259,7 +259,7 @@ export default function DashboardPage() {
             ) : (
               <>
                 <p className="text-sm font-medium text-orange-400">No handle set</p>
-                <p className="text-xs text-gray-600 mt-0.5">
+                <p className="text-xs text-gray-500 mt-0.5">
                   Claim your handle to enable downloads and sharing.
                 </p>
               </>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
               </div>
               <div>
                 <p className="font-semibold text-gray-300 group-hover:text-white transition-colors">Choose a video to upload</p>
-                <p className="text-sm text-gray-600 mt-1">MP4, MOV, AVI — any highlight reel</p>
+                <p className="text-sm text-gray-500 mt-1">MP4, MOV, AVI — any highlight reel</p>
               </div>
             </button>
           ) : (
@@ -365,7 +365,7 @@ export default function DashboardPage() {
                   {uploading ? "Analyzing your game…" : "Analyze my game"}
                 </button>
                 {uploading && (
-                  <p className="mt-2 text-center text-xs text-gray-600">
+                  <p className="mt-2 text-center text-xs text-gray-500">
                     Extracting frames and scouting your footage — this can take up to a minute.
                   </p>
                 )}
@@ -395,7 +395,7 @@ export default function DashboardPage() {
 
           {videos.length === 0 ? (
             <div className="rounded-xl border border-white/5 bg-white/2 py-16 text-center">
-              <p className="text-gray-600 text-sm">No clips uploaded yet.</p>
+              <p className="text-gray-500 text-sm">No clips uploaded yet.</p>
             </div>
           ) : (
             <ul className="space-y-4">
@@ -409,7 +409,7 @@ export default function DashboardPage() {
                         <p className="font-medium text-sm truncate text-gray-200">
                           {video.file_path.split("-").slice(2).join("-") || video.file_path}
                         </p>
-                        <p className="text-xs text-gray-600 mt-0.5">{formatDate(video.created_at)}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">{formatDate(video.created_at)}</p>
                       </div>
                       <a href={getVideoUrl(video.file_path)} target="_blank" rel="noopener noreferrer"
                         className="shrink-0 rounded-md border border-white/10 px-3 py-1.5 text-xs text-gray-400 hover:border-white/30 hover:text-white transition-colors">
@@ -465,7 +465,7 @@ export default function DashboardPage() {
                   className="flex-1 bg-transparent py-3 pr-3 text-white placeholder-gray-600 outline-none text-sm"
                 />
               </div>
-              <p className="mt-1.5 text-xs text-gray-600">
+              <p className="mt-1.5 text-xs text-gray-500">
                 3–20 characters · letters, numbers, and periods only
               </p>
               {claimError && (
@@ -483,7 +483,7 @@ export default function DashboardPage() {
               </button>
               <button
                 onClick={() => setShowClaimModal(false)}
-                className="w-full rounded-lg py-2.5 text-sm text-gray-600 hover:text-gray-400 transition-colors"
+                className="w-full rounded-lg py-2.5 text-sm text-gray-500 hover:text-gray-400 transition-colors"
               >
                 Skip for now
               </button>

@@ -75,7 +75,7 @@ export default function HomePage() {
           >
             Get Started Free
           </Link>
-          <p className="mt-3 text-sm text-gray-600">
+          <p className="mt-3 text-sm text-gray-500">
             Already have an account?{" "}
             <Link href="/login" className="text-gray-400 hover:text-white underline underline-offset-2">
               Log in
@@ -134,7 +134,7 @@ export default function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="border-t border-white/5 py-8 text-center text-xs text-gray-700">
+        <footer className="border-t border-white/5 py-8 text-center text-xs text-gray-600">
           © 2026 SwishLink. All rights reserved.
         </footer>
       </div>
