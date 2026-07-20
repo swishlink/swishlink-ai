@@ -27,6 +27,16 @@ const CONFIDENCE_LABEL_COLORS: Record<string, string> = {
   low: "text-amber-400",
 };
 
+// Shrinks the archetype heading as it gets longer so it stays on (at most)
+// two lines instead of overflowing or wrapping to three+ lines.
+function archetypeSizeClass(text: string): string {
+  const len = text.length;
+  if (len <= 12) return "text-4xl sm:text-5xl";
+  if (len <= 18) return "text-3xl sm:text-4xl";
+  if (len <= 25) return "text-2xl sm:text-3xl";
+  return "text-xl sm:text-2xl";
+}
+
 type Props = {
   profile: PlayerProfile;
   username?: string;
@@ -94,7 +104,11 @@ export default function PlayerProfileCard({
           <span className="text-xs font-semibold uppercase tracking-[0.2em] text-orange-400">
             Your Basketball Identity
           </span>
-          <h2 className="mt-3 text-4xl sm:text-5xl font-extrabold leading-tight tracking-tight">
+          <h2
+            className={`mt-3 font-extrabold leading-tight tracking-tight break-words line-clamp-2 ${archetypeSizeClass(
+              profile.archetype
+            )}`}
+          >
             {profile.archetype}
           </h2>
           <p className="mt-2 text-xs text-gray-600">

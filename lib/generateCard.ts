@@ -49,6 +49,50 @@ function wrapText(
   return lines.length;
 }
 
+// Fits the archetype title within maxWidth by shrinking the font size; if it
+// still doesn't fit at the minimum size, falls back to the most balanced
+// two-line word split at that minimum size.
+function fitArchetypeTitle(
+  ctx: CanvasRenderingContext2D,
+  rawText: string,
+  maxWidth: number
+): { fontSize: number; lines: string[] } {
+  const text = rawText.toUpperCase();
+  const MAX_SIZE = 108;
+  const MIN_SIZE = 56;
+  const STEP = 4;
+
+  for (let size = MAX_SIZE; size >= MIN_SIZE; size -= STEP) {
+    ctx.font = `bold ${size}px system-ui,sans-serif`;
+    if (ctx.measureText(text).width <= maxWidth) {
+      return { fontSize: size, lines: [text] };
+    }
+  }
+
+  ctx.font = `bold ${MIN_SIZE}px system-ui,sans-serif`;
+  const words = text.split(" ");
+  if (words.length === 1) {
+    return { fontSize: MIN_SIZE, lines: [text] };
+  }
+
+  let bestSplit = 1;
+  let bestMaxWidth = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const line1 = words.slice(0, i).join(" ");
+    const line2 = words.slice(i).join(" ");
+    const widest = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width);
+    if (widest < bestMaxWidth) {
+      bestMaxWidth = widest;
+      bestSplit = i;
+    }
+  }
+
+  return {
+    fontSize: MIN_SIZE,
+    lines: [words.slice(0, bestSplit).join(" "), words.slice(bestSplit).join(" ")],
+  };
+}
+
 function bar(
   ctx: CanvasRenderingContext2D,
   x: number,
@@ -111,29 +155,49 @@ export async function generateShareCard(
   ctx.font = "bold 30px system-ui,sans-serif";
   ctx.fillText("YOUR BASKETBALL IDENTITY", W / 2, 300 + off);
 
-  // Identity name — the largest element on the card
+  // Identity name — the largest element on the card. Auto-fits within the
+  // card's content width, shrinking font size and falling back to two lines
+  // if it still doesn't fit (e.g. a long 25-character archetype).
+  const archetypeMaxWidth = W - 216; // matches the divider margins below
+  const { fontSize: archFontSize, lines: archLines } = fitArchetypeTitle(
+    ctx,
+    profile.archetype,
+    archetypeMaxWidth
+  );
+  const archLineHeight = Math.round(archFontSize * 1.05);
+  const archExtra = archLines.length > 1 ? archLineHeight : 0;
+
   ctx.fillStyle = "#ffffff";
-  ctx.font = `bold ${profile.archetype.length > 10 ? 88 : 108}px system-ui,sans-serif`;
-  ctx.fillText(profile.archetype.toUpperCase(), W / 2, 440 + off);
+  ctx.font = `bold ${archFontSize}px system-ui,sans-serif`;
+  ctx.textAlign = "center";
+  if (archLines.length === 1) {
+    ctx.fillText(archLines[0], W / 2, 440 + off);
+  } else {
+    ctx.fillText(archLines[0], W / 2, 440 + off - archLineHeight / 2);
+    ctx.fillText(archLines[1], W / 2, 440 + off + archLineHeight / 2);
+  }
+
+  // Everything below the title shifts down if it wrapped to two lines.
+  const offBelow = off + archExtra;
 
   ctx.fillStyle = "#6b7280";
   ctx.font = "26px system-ui,sans-serif";
-  ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 500 + off);
+  ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 500 + offBelow);
 
   // Closest NBA Match — name only; confidence now lives with the observation
   ctx.fillStyle = "#6b7280";
   ctx.font = "38px system-ui,sans-serif";
-  ctx.fillText("Closest NBA Match", W / 2, 566 + off);
+  ctx.fillText("Closest NBA Match", W / 2, 566 + offBelow);
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 62px system-ui,sans-serif";
-  ctx.fillText(profile.nbaComparison, W / 2, 634 + off);
+  ctx.fillText(profile.nbaComparison, W / 2, 634 + offBelow);
 
   // Divider before ratings
   ctx.strokeStyle = "rgba(255,255,255,0.08)";
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(108, 690 + off);
-  ctx.lineTo(W - 108, 690 + off);
+  ctx.moveTo(108, 690 + offBelow);
+  ctx.lineTo(W - 108, 690 + offBelow);
   ctx.stroke();
 
   // Ratings
@@ -143,7 +207,7 @@ export async function generateShareCard(
     { label: "HANDLES", value: profile.ratings.handles, color: "#34d399" },
   ];
 
-  const ratingsNumberY = 845 + off;
+  const ratingsNumberY = 845 + offBelow;
   const colW = (W - 216) / 3;
   ratings.forEach((r, i) => {
     const cx = 108 + i * colW + colW / 2;

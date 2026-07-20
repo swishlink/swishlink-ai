@@ -55,7 +55,9 @@ do not default to the same few names.
 
 OUTPUT — respond ONLY with this JSON, no other text:
 {
-  "archetype": "string — 2-3 word playstyle title",
+  "archetype": "string — a punchy playstyle title,
+    MAXIMUM 3 words and 20 characters (e.g. Two-Way
+    Guard, Floor General, Transition Wing)",
   "nba_comparison": "string — player name",
   "comparison_reason": "string — 1-2 sentences citing specific
     visible observations from THIS footage",
