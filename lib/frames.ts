@@ -3,6 +3,8 @@
 // each frame as a base64 JPEG (no data-URL prefix) suitable for the
 // Anthropic vision API.
 
+import { withTimeout } from "@/lib/withTimeout";
+
 export type ExtractedFrame = { data: string; mediaType: "image/jpeg" };
 
 const FRAME_COUNT = 12; // 10–15 range, spread evenly across the clip
@@ -10,26 +12,6 @@ const MAX_EDGE = 1024; // downscale long edge to keep the payload reasonable
 const JPEG_QUALITY = 0.72;
 const METADATA_TIMEOUT_MS = 15_000;
 const SEEK_TIMEOUT_MS = 8_000;
-
-// Some mobile browsers/codecs never fire "loadedmetadata" or "seeked" for a
-// given file (rotation metadata, partial buffering over cellular, etc.),
-// which would otherwise hang these awaits forever. Bound every wait so a
-// bad file fails fast instead of stalling the whole upload flow.
-function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
-  return new Promise<T>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error(message)), ms);
-    promise.then(
-      (value) => {
-        clearTimeout(timer);
-        resolve(value);
-      },
-      (err) => {
-        clearTimeout(timer);
-        reject(err);
-      }
-    );
-  });
-}
 
 export async function extractFrames(
   file: File,
@@ -41,6 +23,15 @@ export async function extractFrames(
   video.muted = true;
   video.playsInline = true;
   video.src = url;
+  // iOS Safari can fail to load metadata or seek on a video element that's
+  // never attached to the document — keep it in the DOM (visually hidden)
+  // for the duration of extraction instead of only holding a detached node.
+  video.style.position = "fixed";
+  video.style.width = "1px";
+  video.style.height = "1px";
+  video.style.opacity = "0";
+  video.style.pointerEvents = "none";
+  document.body.appendChild(video);
 
   try {
     await withTimeout(
@@ -81,6 +72,7 @@ export async function extractFrames(
     URL.revokeObjectURL(url);
     video.removeAttribute("src");
     video.load();
+    video.remove();
   }
 }
 

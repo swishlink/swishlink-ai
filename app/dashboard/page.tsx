@@ -7,6 +7,7 @@ import Image from "next/image";
 import PlayerProfileCard from "@/components/PlayerProfileCard";
 import type { PlayerProfile, Confidence } from "@/lib/playerProfile";
 import { analyzeVideo } from "@/lib/analyzeVideo";
+import { withTimeout } from "@/lib/withTimeout";
 
 type VideoRecord = {
   id: string;
@@ -172,8 +173,20 @@ export default function DashboardPage() {
     const fileExt = selectedFile.name.split(".").pop();
     const filePath = `${userId}-${Date.now()}.${fileExt}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("videos").upload(filePath, selectedFile);
+    // Bounded so a weak mobile connection fails fast with a clear message
+    // instead of leaving the button stuck on "Analyzing your game…".
+    let uploadError;
+    try {
+      ({ error: uploadError } = await withTimeout(
+        supabase.storage.from("videos").upload(filePath, selectedFile),
+        120_000,
+        "Upload timed out — check your connection and try again."
+      ));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Upload timed out. Please try again.");
+      setUploading(false);
+      return;
+    }
     if (uploadError) {
       alert("Upload failed: " + uploadError.message + "\n\nCheck that your Supabase storage bucket has an upload policy for authenticated users.");
       setUploading(false);
