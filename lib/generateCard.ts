@@ -180,7 +180,7 @@ export async function generateShareCard(
   // Everything below the title shifts down if it wrapped to two lines.
   const offBelow = off + archExtra;
 
-  ctx.fillStyle = "#6b7280";
+  ctx.fillStyle = "#ffffff";
   ctx.font = "26px system-ui,sans-serif";
   ctx.fillText("Based on AI analysis of your uploaded game footage.", W / 2, 500 + offBelow);
 
@@ -253,7 +253,7 @@ export async function generateShareCard(
     ctx.textAlign = "center";
     ctx.fillText(readLabel, W / 2, divider2Y + 40);
 
-    ctx.fillStyle = "#9ca3af";
+    ctx.fillStyle = "#ffffff";
     ctx.font = "italic 34px system-ui,sans-serif";
     ctx.textAlign = "center";
     wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, divider2Y + 80, W - 280, 56);

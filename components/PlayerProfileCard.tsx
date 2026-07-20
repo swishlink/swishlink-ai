@@ -111,7 +111,7 @@ export default function PlayerProfileCard({
           >
             {profile.archetype}
           </h2>
-          <p className="mt-2 text-xs text-gray-500">
+          <p className="mt-2 text-xs text-white">
             Based on AI analysis of your uploaded game footage.
           </p>
         </div>
@@ -166,7 +166,7 @@ export default function PlayerProfileCard({
             <p className={`text-[10px] font-semibold uppercase tracking-widest ${readColor}`}>
               {readLabel}
             </p>
-            <p className="mt-2 text-xs text-gray-500 leading-relaxed">
+            <p className="mt-2 text-xs text-white leading-relaxed">
               {profile.comparisonReason}
             </p>
           </div>
