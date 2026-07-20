@@ -34,6 +34,7 @@ type Props = {
   videoId?: string;
   showSharePrompt?: boolean;
   trackView?: boolean;
+  shareRevealDelayMs?: number;
 };
 
 export default function PlayerProfileCard({
@@ -43,6 +44,7 @@ export default function PlayerProfileCard({
   videoId,
   showSharePrompt = false,
   trackView = false,
+  shareRevealDelayMs,
 }: Props) {
   useEffect(() => {
     if (trackView && userId) {
@@ -163,6 +165,7 @@ export default function PlayerProfileCard({
           username={username}
           userId={userId}
           videoId={videoId}
+          revealDelayMs={shareRevealDelayMs}
         />
       )}
     </div>

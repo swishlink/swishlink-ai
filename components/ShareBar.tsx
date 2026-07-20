@@ -11,17 +11,28 @@ type Props = {
   username: string;
   userId: string;
   videoId?: string;
+  // Delay before the panel reveals itself, in ms. Defaults to a short
+  // "reveal" pause for the just-analyzed card; pass 0 for cards a user is
+  // revisiting later (e.g. the clip library), where it should show at once.
+  revealDelayMs?: number;
 };
 
-export default function ShareBar({ profile, username, userId, videoId }: Props) {
-  const [visible, setVisible] = useState(false);
+export default function ShareBar({
+  profile,
+  username,
+  userId,
+  videoId,
+  revealDelayMs = 4000,
+}: Props) {
+  const [visible, setVisible] = useState(revealDelayMs === 0);
   const [copied, setCopied] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
-    const t = setTimeout(() => setVisible(true), 4000);
+    if (revealDelayMs === 0) return;
+    const t = setTimeout(() => setVisible(true), revealDelayMs);
     return () => clearTimeout(t);
-  }, []);
+  }, [revealDelayMs]);
 
   const profileUrl = `https://swishlink-ai.vercel.app/player/${username}`;
   const igCaption = `Just found out I'm a ${profile.archetype} 🏀 Plays like ${profile.nbaComparison}. Get your player DNA 👉 ${profileUrl}`;

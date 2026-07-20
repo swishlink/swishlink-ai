@@ -423,6 +423,8 @@ export default function DashboardPage() {
                           username={username}
                           userId={userId}
                           videoId={video.id}
+                          showSharePrompt={true}
+                          shareRevealDelayMs={0}
                         />
                       </div>
                     )}
