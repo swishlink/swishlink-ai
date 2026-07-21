@@ -64,8 +64,21 @@ export default async function PublicProfilePage({ params }: Props) {
             <Image src="/swishlink-logo.png" alt="SwishLink" width={140} height={40} className="object-contain" />
           </Link>
         </nav>
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-gray-500 text-sm">@{profile.username} hasn&apos;t uploaded a clip yet.</p>
+        <div className="flex flex-1 items-center justify-center px-6">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-white/5 mb-5">
+              <svg className="w-6 h-6 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold mb-2">This player card is no longer available.</h1>
+            <p className="text-sm text-gray-500">
+              @{profile.username} hasn&apos;t uploaded a clip yet, or it was removed.
+            </p>
+            <Link href="/signup" className="inline-block mt-6 rounded-lg bg-orange-500 hover:bg-orange-400 transition-colors px-6 py-2.5 text-sm font-semibold text-white">
+              Create your own card
+            </Link>
+          </div>
         </div>
       </div>
     );
