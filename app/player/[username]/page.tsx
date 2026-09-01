@@ -3,6 +3,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import PlayerProfileCard from "@/components/PlayerProfileCard";
 import type { PlayerProfile } from "@/lib/playerProfile";
+import { SITE_DOMAIN } from "@/lib/siteUrl";
 
 type Props = { params: Promise<{ username: string }> };
 
@@ -127,7 +128,7 @@ export default async function PublicProfilePage({ params }: Props) {
         <p className="text-center text-xs text-gray-600 mt-8">
           Know your game at{" "}
           <Link href="/" className="text-gray-500 hover:text-white underline underline-offset-2">
-            swishlink-ai.vercel.app
+            {SITE_DOMAIN}
           </Link>
         </p>
       </div>

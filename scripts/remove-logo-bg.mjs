@@ -43,3 +43,16 @@ const result = await sharp(buf, { raw: { width, height, channels } })
 
 writeFileSync(dst, result);
 console.log(`Saved transparent logo to ${dst}`);
+
+// The source art is a 1536x1024 frame with the lockup sitting in the middle
+// surrounded by transparent padding. Drawing that whole frame at a header
+// height shrinks the actual lockup to a fraction of the requested size and
+// turns it to mush, so also emit a padding-free copy for the share card to
+// draw from at full resolution.
+const cardDst = "public/swishlink-logo-card.png";
+const trimmed = await sharp(result).trim({ threshold: 1 }).png().toBuffer();
+writeFileSync(cardDst, trimmed);
+const trimmedMeta = await sharp(trimmed).metadata();
+console.log(
+  `Saved padding-free card logo to ${cardDst} (${trimmedMeta.width}x${trimmedMeta.height})`
+);

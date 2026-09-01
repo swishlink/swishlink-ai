@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
 import { generateShareCard } from "@/lib/generateCard";
+import { SITE_URL } from "@/lib/siteUrl";
 import type { PlayerProfile } from "@/lib/playerProfile";
 
 type Props = {
@@ -34,7 +35,7 @@ export default function ShareBar({
     return () => clearTimeout(t);
   }, [revealDelayMs]);
 
-  const profileUrl = `https://swishlink-ai.vercel.app/player/${username}`;
+  const profileUrl = `${SITE_URL}/player/${username}`;
   const igCaption = `Just found out I'm a ${profile.archetype} 🏀 Plays like ${profile.nbaComparison}. Get your player DNA 👉 ${profileUrl}`;
   const ttCaption = `I'm a ${profile.archetype} — plays like ${profile.nbaComparison} 🏀🔥 Drop your clip at ${profileUrl} #basketball #SwishLink`;
 

@@ -1,4 +1,5 @@
 import type { PlayerProfile } from "@/lib/playerProfile";
+import { SITE_DOMAIN } from "@/lib/siteUrl";
 import {
   confidenceLabel,
   shouldPromptForSharperRatings,
@@ -93,33 +94,46 @@ function fitArchetypeTitle(
   };
 }
 
+// One fixed track width for all three stat bars, so the fills are directly
+// comparable to each other and each fill is a straight fraction of a track
+// the viewer can actually see. A bar must never disagree with the number
+// printed above it.
+const BAR_TRACK_W = 192;
+const BAR_H = 12;
+const BAR_TRACK_COLOR = "#374151";
+// All three bars share the brand orange. Per-stat colours implied a meaning
+// the categories don't have, and made equal-length bars read as unequal.
+const BAR_FILL_COLOR = "#F07B25";
+
+// Draws one stat bar centred on cx. Takes the rating, not a pixel width, so
+// every bar goes through the same clamp and the same rounding.
 function bar(
   ctx: CanvasRenderingContext2D,
-  x: number,
+  cx: number,
   y: number,
-  w: number,
-  h: number,
-  fill: string,
-  pct: number,
+  rating: number,
   dim: boolean = false
 ) {
-  ctx.fillStyle = "#1f2937";
-  ctx.fillRect(x, y, w, h);
+  const x = Math.round(cx - BAR_TRACK_W / 2);
+  const pct = Math.min(100, Math.max(0, rating));
+  const fillW = Math.round((pct / 100) * BAR_TRACK_W);
+
+  ctx.fillStyle = BAR_TRACK_COLOR;
+  ctx.fillRect(x, y, BAR_TRACK_W, BAR_H);
   ctx.globalAlpha = dim ? 0.5 : 1;
-  ctx.fillStyle = fill;
-  ctx.fillRect(x, y, (w * pct) / 100, h);
+  ctx.fillStyle = BAR_FILL_COLOR;
+  ctx.fillRect(x, y, fillW, BAR_H);
   ctx.globalAlpha = 1;
 }
 
-export async function generateShareCard(
+// Draws the full card into a 1080x1920 context. Exported separately from the
+// download path so a sample can be rendered and inspected without an upload
+// (see scripts/render-sample-card.mjs).
+export async function drawShareCard(
+  ctx: CanvasRenderingContext2D,
   profile: PlayerProfile,
   username: string
 ): Promise<void> {
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!;
-
   // Background
   ctx.fillStyle = "#0a0a0a";
   ctx.fillRect(0, 0, W, H);
@@ -131,13 +145,17 @@ export async function generateShareCard(
   ctx.fillStyle = glow;
   ctx.fillRect(0, 0, W, H);
 
-  // Logo
+  // Logo — the padding-free lockup, so the requested height is the height the
+  // mark actually renders at. Source is 1033px wide against ~366px drawn, so
+  // it downsamples with plenty of pixels to spare.
   ctx.textAlign = "center";
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   try {
-    const logo = await loadImage("/swishlink-logo.png");
-    const lh = 100;
+    const logo = await loadImage("/swishlink-logo-card.png");
+    const lh = 88;
     const lw = (logo.width / logo.height) * lh;
-    ctx.drawImage(logo, (W - lw) / 2, 100, lw, lh);
+    ctx.drawImage(logo, Math.round((W - lw) / 2), 76, Math.round(lw), lh);
   } catch {
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 56px system-ui,sans-serif";
@@ -208,19 +226,16 @@ export async function generateShareCard(
     {
       label: "3PT",
       value: profile.ratings.threePoint,
-      color: "#fb923c",
       observed: profile.observed?.threePoint ?? true,
     },
     {
       label: "FINISHING",
       value: profile.ratings.finishing,
-      color: "#38bdf8",
       observed: profile.observed?.finishing ?? true,
     },
     {
       label: "HANDLES",
       value: profile.ratings.handles,
-      color: "#34d399",
       observed: profile.observed?.handles ?? true,
     },
   ];
@@ -245,7 +260,7 @@ export async function generateShareCard(
     ctx.font = "bold 30px system-ui,sans-serif";
     ctx.fillText(r.label, cx, ratingsNumberY + 56);
 
-    bar(ctx, cx - 96, ratingsNumberY + 76, 192, 12, r.color, r.value, !r.observed);
+    bar(ctx, cx, ratingsNumberY + 76, r.value, !r.observed);
   });
 
   // Sharper-ratings CTA — fills the empty space between ratings and the
@@ -270,6 +285,7 @@ export async function generateShareCard(
   ctx.stroke();
 
   // Observation — confidence read, then the quote it's based on
+  let contentBottom = divider2Y + 40;
   if (profile.comparisonReason) {
     const readLabel = confidenceLabel(profile.confidence).toUpperCase();
     ctx.fillStyle = CONFIDENCE_LABEL_COLORS[profile.confidence ?? "medium"];
@@ -277,20 +293,57 @@ export async function generateShareCard(
     ctx.textAlign = "center";
     ctx.fillText(readLabel, W / 2, divider2Y + 40);
 
+    // Says out loud what the read above is measuring, so "GOOD READ" can't be
+    // mistaken for a compliment about the player.
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "600 20px system-ui,sans-serif";
+    ctx.fillText("ANALYSIS CONFIDENCE", W / 2, divider2Y + 70);
+
     ctx.fillStyle = "#ffffff";
     ctx.font = "italic 34px system-ui,sans-serif";
     ctx.textAlign = "center";
-    wrapText(ctx, `"${profile.comparisonReason}"`, W / 2, divider2Y + 80, W - 280, 56);
+    const quoteTop = divider2Y + 126;
+    const quoteLineHeight = 56;
+    const quoteLines = wrapText(
+      ctx,
+      `"${profile.comparisonReason}"`,
+      W / 2,
+      quoteTop,
+      W - 280,
+      quoteLineHeight
+    );
+    contentBottom = quoteTop + (quoteLines - 1) * quoteLineHeight + 16;
   }
 
-  // Bottom branding
-  ctx.fillStyle = "#374151";
+  // Bottom branding — a question rather than a statement, so a teammate
+  // seeing the card knows what to do next. "Know your game." isn't repeated
+  // here; the logo lockup at the top already carries it.
+  //
+  // Normally sits at a fixed spot near the bottom, close enough that the
+  // quote above doesn't read as stranded mid-card while still clearing the
+  // Instagram Story / TikTok UI overlays. A long archetype, the
+  // sharper-ratings CTA and a long quote all push content down, so the footer
+  // gives way rather than colliding — capped so the URL stays on the card.
+  const taglineY = Math.min(Math.max(H - 262, contentBottom + 92), H - 110);
+  ctx.fillStyle = "#6b7280";
   ctx.font = "38px system-ui,sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("Know your game.", W / 2, H - 160);
-  ctx.fillStyle = "#6b7280";
+  ctx.fillText("What kind of player are you?", W / 2, taglineY);
+  ctx.fillStyle = "#9ca3af";
   ctx.font = "bold 46px system-ui,sans-serif";
-  ctx.fillText("swishlink-ai.vercel.app", W / 2, H - 96);
+  ctx.fillText(SITE_DOMAIN, W / 2, taglineY + 64);
+}
+
+export async function generateShareCard(
+  profile: PlayerProfile,
+  username: string
+): Promise<void> {
+  const canvas = document.createElement("canvas");
+  canvas.width = W;
+  canvas.height = H;
+  const ctx = canvas.getContext("2d")!;
+
+  await drawShareCard(ctx, profile, username);
 
   // Download
   canvas.toBlob(
