@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
-import { generateShareCard } from "@/lib/generateCard";
 import { SITE_URL } from "@/lib/siteUrl";
 import type { PlayerProfile } from "@/lib/playerProfile";
+import type { ShareCardStatus } from "@/lib/useShareCard";
 
 type Props = {
   profile: PlayerProfile;
@@ -16,6 +16,12 @@ type Props = {
   // "reveal" pause for the just-analyzed card; pass 0 for cards a user is
   // revisiting later (e.g. the clip library), where it should show at once.
   revealDelayMs?: number;
+  // Card sharing is owned by the parent so the 1080x1920 canvas is rendered
+  // once, ahead of the tap. Must be passed straight into onClick — wrapping it
+  // in an async handler costs the iOS user activation navigator.share needs.
+  onShareCard: () => void;
+  onPrimeShareCard: () => void;
+  shareStatus: ShareCardStatus;
 };
 
 export default function ShareBar({
@@ -24,10 +30,12 @@ export default function ShareBar({
   userId,
   videoId,
   revealDelayMs = 4000,
+  onShareCard,
+  onPrimeShareCard,
+  shareStatus,
 }: Props) {
   const [visible, setVisible] = useState(revealDelayMs === 0);
   const [copied, setCopied] = useState(false);
-  const [downloading, setDownloading] = useState(false);
 
   useEffect(() => {
     if (revealDelayMs === 0) return;
@@ -38,13 +46,6 @@ export default function ShareBar({
   const profileUrl = `${SITE_URL}/player/${username}`;
   const igCaption = `Just found out I'm a ${profile.archetype} 🏀 Plays like ${profile.nbaComparison}. Get your player DNA 👉 ${profileUrl}`;
   const ttCaption = `I'm a ${profile.archetype} — plays like ${profile.nbaComparison} 🏀🔥 Drop your clip at ${profileUrl} #basketball #SwishLink`;
-
-  const handleDownload = async () => {
-    setDownloading(true);
-    trackEvent(supabase, "card_downloaded", userId, videoId);
-    await generateShareCard(profile, username);
-    setDownloading(false);
-  };
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(profileUrl);
@@ -84,11 +85,16 @@ export default function ShareBar({
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           <button
-            onClick={handleDownload}
-            disabled={downloading}
+            onClick={onShareCard}
+            onPointerDown={onPrimeShareCard}
+            disabled={shareStatus !== "ready"}
             className="rounded-lg bg-orange-500 hover:bg-orange-400 disabled:opacity-50 transition-colors px-3 py-2 text-xs font-semibold text-white"
           >
-            {downloading ? "Generating…" : "Download Card"}
+            {shareStatus === "ready"
+              ? "Share Card"
+              : shareStatus === "error"
+                ? "Card unavailable"
+                : "Preparing…"}
           </button>
           <button
             onClick={handleCopyLink}

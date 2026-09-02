@@ -3,8 +3,9 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { trackEvent } from "@/lib/analytics";
-import { generateShareCard } from "@/lib/generateCard";
+import { useShareCard } from "@/lib/useShareCard";
 import ShareBar from "@/components/ShareBar";
+import SaveCardOverlay from "@/components/SaveCardOverlay";
 export type { PlayerProfile } from "@/lib/playerProfile";
 export { getProfile } from "@/lib/playerProfile";
 
@@ -62,10 +63,24 @@ export default function PlayerProfileCard({
     }
   }, [trackView, userId, videoId]);
 
-  const handleDownload = async () => {
+  // One hook for the whole card, so the 1080x1920 canvas is rendered once and
+  // both share buttons (this header one and ShareBar's) push the same File.
+  const {
+    status: shareStatus,
+    share,
+    observeShareButton,
+    prime,
+    fallbackUrl,
+    closeFallback,
+  } = useShareCard(profile, username);
+
+  // Not async, and nothing is awaited before share(): iOS only honours
+  // navigator.share() while the tap's user activation is still live.
+  // trackEvent is deliberately left un-awaited for the same reason.
+  const handleShare = () => {
     if (!username) return;
     if (userId) trackEvent(supabase, "card_downloaded", userId, videoId);
-    await generateShareCard(profile, username);
+    share();
   };
 
   const ratings = [
@@ -91,10 +106,17 @@ export default function PlayerProfileCard({
           )}
           {username && (
             <button
-              onClick={handleDownload}
-              className="shrink-0 rounded-md border border-white/10 hover:border-orange-500/40 hover:text-orange-400 transition-colors px-3 py-1.5 text-xs text-gray-500"
+              ref={observeShareButton}
+              onClick={handleShare}
+              onPointerDown={prime}
+              disabled={shareStatus !== "ready"}
+              className="shrink-0 rounded-md border border-white/10 hover:border-orange-500/40 hover:text-orange-400 disabled:opacity-50 disabled:hover:border-white/10 disabled:hover:text-gray-500 transition-colors px-3 py-1.5 text-xs text-gray-500"
             >
-              Download Card
+              {shareStatus === "ready"
+                ? "Share Card"
+                : shareStatus === "error"
+                  ? "Card unavailable"
+                  : "Preparing…"}
             </button>
           )}
         </div>
@@ -187,8 +209,13 @@ export default function PlayerProfileCard({
           userId={userId}
           videoId={videoId}
           revealDelayMs={shareRevealDelayMs}
+          onShareCard={handleShare}
+          onPrimeShareCard={prime}
+          shareStatus={shareStatus}
         />
       )}
+
+      <SaveCardOverlay url={fallbackUrl} onClose={closeFallback} />
     </div>
   );
 }

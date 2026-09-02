@@ -334,10 +334,22 @@ export async function drawShareCard(
   ctx.fillText(SITE_DOMAIN, W / 2, taglineY + 64);
 }
 
-export async function generateShareCard(
+export function shareCardFilename(username: string): string {
+  const safe = username.replace(/[^a-zA-Z0-9_-]/g, "").toLowerCase();
+  return `swishlink-${safe || "card"}.png`;
+}
+
+// Renders the card and hands back a real File — not a Blob. navigator.canShare
+// rejects a bare Blob, and iOS uses the .png filename and image/png type to
+// decide the share sheet can offer "Save Image".
+//
+// Deliberately does NOT touch the DOM beyond an offscreen canvas: the caller
+// renders this ahead of the user's tap, because awaiting it inside the tap
+// handler would spend the user activation iOS requires for navigator.share.
+export async function renderShareCardFile(
   profile: PlayerProfile,
   username: string
-): Promise<void> {
+): Promise<File> {
   const canvas = document.createElement("canvas");
   canvas.width = W;
   canvas.height = H;
@@ -345,19 +357,10 @@ export async function generateShareCard(
 
   await drawShareCard(ctx, profile, username);
 
-  // Download
-  canvas.toBlob(
-    (blob) => {
-      if (!blob) return;
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `swishlink-${username}-${profile.archetype
-        .toLowerCase()
-        .replace(/ /g, "-")}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-    },
-    "image/png"
+  const blob = await new Promise<Blob | null>((resolve) =>
+    canvas.toBlob(resolve, "image/png")
   );
+  if (!blob) throw new Error("Could not encode the share card as a PNG.");
+
+  return new File([blob], shareCardFilename(username), { type: "image/png" });
 }
