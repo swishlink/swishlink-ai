@@ -79,7 +79,7 @@ export default function PlayerProfileCard({
   // trackEvent is deliberately left un-awaited for the same reason.
   const handleShare = () => {
     if (!username) return;
-    if (userId) trackEvent(supabase, "card_downloaded", userId, videoId);
+    if (userId) trackEvent(supabase, "card_shared", userId, videoId);
     share();
   };
 
